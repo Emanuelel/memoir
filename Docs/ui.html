@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memoir: interface</title>
+<style>
+:root{
+  --bg:#000; --card:#0c0c0d; --card2:#131315; --line:#1e1e21; --line2:#2a2a2e;
+  --ink:#fff; --dim:#9b9b a0; --dim:#9b9ba0; --faint:#65656b;
+  --good:#3ecf7e; --warn:#f5c451; --tongue:#f2637f;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Display","Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;line-height:1.55}
+main{max-width:1000px;margin:0 auto;padding:0 24px 160px}
+
+h1{font-size:clamp(46px,10vw,104px);line-height:.92;letter-spacing:-.04em;font-weight:800;margin:0 0 20px}
+h2{font-size:clamp(30px,5.4vw,54px);line-height:1.02;letter-spacing:-.035em;font-weight:800;margin:0 0 14px}
+h3{font-size:clamp(19px,2.4vw,25px);line-height:1.2;letter-spacing:-.02em;font-weight:700;margin:44px 0 12px}
+p{color:#9b9ba0;font-size:17px;max-width:64ch;margin:0 0 16px}
+p.lead{color:#d6d6d9;font-size:19px}
+.small{font-size:15px}
+b,strong{color:var(--ink);font-weight:650}
+code{font-family:var(--mono);font-size:.85em;background:#141416;border-radius:5px;padding:2px 6px;color:#d6d6d9}
+
+header{padding:110px 0 40px}
+.kicker{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--faint);margin-bottom:24px}
+section{padding:96px 0 0}
+.eyebrow{font-size:13px;font-weight:650;color:var(--faint);margin-bottom:14px}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 28px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.card h4{font-size:17px;font-weight:700;margin:0 0 8px;letter-spacing:-.01em}
+.card p{font-size:15px;margin:0}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:8px 16px;
+  font-size:14px;font-weight:600}
+.pill.solid{background:#fff;color:#000}
+.pill.ghost{background:#141416;color:#c9c9cd;border:1px solid var(--line2)}
+.pill.tiny{padding:4px 10px;font-size:12px}
+.pill .soon{color:var(--warn)}
+
+/* ---------- the face, Taby-weight ---------- */
+.faceGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.fcell{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 14px 16px;
+  text-align:center}
+.fcell .nm{font-size:14px;font-weight:700;margin-top:14px}
+.fcell .tg{font-size:13px;color:var(--faint);margin-top:4px;line-height:1.4}
+
+/* ---------- mac screen + notch ---------- */
+.mac{position:relative;border-radius:18px;overflow:hidden;background:#08080a;border:1px solid var(--line2)}
+.bezelbar{position:relative;height:34px;background:#0f0f11;display:flex;align-items:center;
+  justify-content:space-between;padding:0 16px;font-size:12px;color:#5c5c62;font-weight:600}
+.cutout{position:absolute;left:50%;top:0;transform:translateX(-50%);width:150px;height:34px;
+  background:#000;border-radius:0 0 14px 14px;display:flex;align-items:center;justify-content:center;z-index:4}
+.cam{width:9px;height:9px;border-radius:50%;background:#141418;box-shadow:inset 0 0 0 1.5px #26262c}
+.camlbl{position:absolute;top:38px;left:50%;transform:translateX(-50%);font-size:10px;color:#3d3d43;
+  white-space:nowrap}
+/* Memoir sits BESIDE the cutout, never over it */
+.beside{position:absolute;top:0;height:34px;display:flex;align-items:center;gap:8px;z-index:5;
+  font-size:12px;color:#b9b9be;font-weight:600}
+.beside.left{left:50%;margin-left:-108px;transform:translateX(-100%);padding-right:10px}
+.beside.right{left:50%;margin-left:108px;padding-left:0}
+.wall{padding:26px 22px 34px;background:
+  radial-gradient(600px 300px at 30% 0%,#16161a 0%,transparent 65%),#08080a;min-height:180px}
+.ghosttext{font-size:13px;color:#232327;line-height:1.9;user-select:none}
+
+/* dropdown panel from the notch */
+.drop{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(520px,94%);
+  background:#000;border:1px solid #1a1a1d;border-top:none;border-radius:0 0 22px 22px;z-index:6;
+  overflow:hidden;box-shadow:0 30px 80px -20px #000}
+.dropnotch{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  position:relative}
+.dropnotch .cam2{position:absolute;left:50%;transform:translateX(-50%);width:9px;height:9px;
+  border-radius:50%;background:#141418;box-shadow:inset 0 0 0 1.5px #26262c}
+.dropbody{padding:6px 18px 18px}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:10px}
+.me{align-self:flex-end;background:#fff;color:#000;border-radius:18px;padding:9px 15px;font-size:15px;
+  font-weight:500;max-width:84%}
+.memoir{align-self:flex-start;color:#e4e4e7;font-size:15px;max-width:90%;padding:2px 2px}
+.confirm{display:flex;align-items:center;gap:10px;background:#101012;border-radius:14px;padding:11px 14px;
+  font-size:14.5px;color:#c9c9cd}
+.confirm .tick{width:18px;height:18px;border-radius:50%;background:rgba(62,207,126,.14);color:var(--good);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex:none}
+.confirm b{color:#fff}
+.askrow{display:flex;align-items:center;gap:12px;border-top:1px solid #161619;margin-top:14px;padding-top:13px}
+.askrow .ph{flex:1;font-size:15px;color:#54545a}
+.caret{display:inline-block;width:2px;height:17px;background:#fff;vertical-align:-3px;
+  animation:bl 1.1s step-end infinite;margin-left:1px}
+@keyframes bl{50%{opacity:0}}
+.kbd{font-size:12px;color:#4e4e54;font-weight:600}
+
+/* nav inside the dropdown */
+.dnav{display:flex;gap:6px;padding:2px 0 12px}
+.dnav button{border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+  border-radius:999px;padding:6px 13px;background:#141416;color:#7c7c83}
+.dnav button[aria-selected=true]{background:#fff;color:#000}
+.dnav .count{margin-left:auto;font-size:12px;color:#5c5c62;align-self:center;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:5px;background:#1a1a1d;border-radius:999px;
+  padding:2px 8px;font-size:11px;font-weight:700;color:#f2637f}
+.dropscroll{min-height:232px}
+.opener{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);
+  border:1px solid var(--line);border-radius:16px}
+.opener .k{font-family:var(--mono);font-size:12px;color:#fff;background:#1c1c20;border-radius:7px;
+  padding:4px 9px;font-weight:600;white-space:nowrap}
+.opener p{margin:0;font-size:14.5px}
+
+/* task rows */
+.trow{display:flex;align-items:center;gap:13px;padding:13px 4px;border-bottom:1px solid #141416}
+.trow:last-child{border-bottom:none}
+.tick2{width:20px;height:20px;border-radius:7px;border:1.5px solid #2e2e33;flex:none}
+.tick2.on{background:var(--good);border-color:var(--good);position:relative}
+.tick2.on::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#04220f;font-size:12px;font-weight:900}
+.trow .tx{flex:1;font-size:15.5px}
+.trow .tx s{color:#4e4e54}
+.trow .sub{font-size:13px;color:#5c5c62;margin-top:2px}
+.mark{font-size:11.5px;font-weight:650;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.mark.you{background:#fff;color:#000}
+.mark.inf{background:#161619;color:#7c7c83}
+.mark.late{background:rgba(242,99,127,.13);color:#f2637f}
+
+/* bars */
+.bars{display:flex;align-items:flex-end;gap:6px;height:88px}
+.bars i{flex:1;background:#232327;border-radius:4px;display:block}
+.bars i.hot{background:#fff}
+
+/* focus ring */
+.ringrow{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.ring{position:relative;width:150px;height:150px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.rt{font-size:26px;font-weight:750;letter-spacing:-.03em;text-align:center;margin-top:10px}
+
+ul.t{margin:0;padding-left:20px}
+ul.t li{color:#9b9ba0;font-size:15px;margin:7px 0}
+ul.t li b{color:#fff}
+.note{border-left:2px solid #2a2a2e;padding-left:18px;margin:22px 0;color:#c9c9cd;font-size:16px}
+hr{border:none;border-top:1px solid var(--line);margin:0}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="kicker">Interface, rebuilt</div>
+  <h1>Memoir</h1>
+  <p class="lead" style="max-width:52ch">Black, white, and almost nothing else. The face does the
+  personality; the interface stays out of the way.</p>
+  <div style="margin-top:26px"><span class="pill ghost tiny">v2 · after looking at Taby properly</span></div>
+</header>
+
+<!-- ===== 01 THE FACE ===== -->
+<section>
+  <div class="eyebrow">01: The face</div>
+  <h2>Solid, not sketched.</h2>
+  <p>Two filled white shapes and a mouth. No outlines, no gradients, no colour except a tongue. It reads at
+  19px in a menu bar and at 200px on a screen, which is the whole requirement.</p>
+
+  <div class="faceGrid" id="faces" style="margin-top:26px"></div>
+
+  <div class="note">All eight already exist in <code>CharacterModel</code> with continuously blending traits.
+  This is a restyle of the drawing code, not new machinery.</div>
+</section>
+
+<!-- ===== 02 THE NOTCH ===== -->
+<section>
+  <div class="eyebrow">02: Where it lives</div>
+  <h2>Beside the camera.<br>Never over it.</h2>
+  <p>The notch is a cutout with the camera in the middle. Nothing can go there. Memoir sits in the menu bar
+  <b>to the left of the cutout</b>, with focus time on the right when a timer is running.</p>
+
+  <div class="mac" style="margin-top:26px">
+    <div class="bezelbar">
+      <span>Xcode &nbsp; File &nbsp; Edit &nbsp; View</span>
+      <div class="cutout"><span class="cam"></span></div>
+      <div class="beside left"><span id="menuface" style="width:20px;height:20px;display:block"></span></div>
+      <div class="beside right"><span>18:42</span></div>
+      <span>Tue 14:32</span>
+    </div>
+    <div class="wall">
+      <div class="camlbl">↑ camera: dead zone</div>
+      <div class="ghosttext" style="margin-top:22px">mirafenn on X: “…this literally just feels like Claude
+      skills wrapped into a nice sms app layer”</div>
+    </div>
+  </div>
+
+  <h3>⌥Space drops it down</h3>
+  <p>The black area grows below the bezel. The camera strip stays untouched, and the panel <b>is</b> the app:
+  chat, your day and your list are all one surface. Click the tabs.</p>
+
+  <div class="mac" style="margin-top:20px">
+    <div class="bezelbar"><span>Xcode</span><span>Tue 14:32</span></div>
+    <div class="wall" style="min-height:400px;padding-top:0">
+      <div class="drop">
+        <div class="dropnotch">
+          <span id="dropface" style="width:20px;height:20px;display:block"></span>
+          <span class="cam2"></span>
+          <span class="kbd">18:42</span>
+        </div>
+        <div class="dropbody">
+          <div class="dnav" id="dnav">
+            <button aria-selected="true" data-d="chat">Chat</button>
+            <button aria-selected="false" data-d="todos">Todos</button>
+            <button aria-selected="false" data-d="today">Today</button>
+            <span class="count" id="dcount"><span class="chip">2 overdue</span></span>
+          </div>
+          <div class="dropscroll" id="dpane"></div>
+          <div class="askrow">
+            <span class="ph">Ask, or tell me something<span class="caret"></span></span>
+            <span class="kbd">⏎</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Three ways to your list</h3>
+  <p>Because the one you reach for depends on where your hands already are.</p>
+
+  <div class="grid" style="gap:10px;margin-top:18px">
+    <div class="opener"><span class="k">⌥Space</span>
+      <p>Opens on <b>Chat</b>, then one click to Todos. The nav remembers where you were last.</p></div>
+    <div class="opener"><span class="k">click the face</span>
+      <p>Clicking Memoir in the menu bar opens straight to <b>Todos</b>, the glance you want most often.</p></div>
+    <div class="opener"><span class="k">just ask</span>
+      <p>“what’s on my list”, “what’s overdue”: the panel switches to Todos and shows it. On a
+      conversational surface, navigation is a sentence.</p></div>
+  </div>
+
+  <div class="note">Overdue count sits beside the face in the menu bar, in the same slot the focus timer
+  uses. One number, always visible, no badge soup.</div>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card"><h4>Macs with no notch</h4>
+      <p>External displays, older Airs, a mini on a desk monitor. The panel anchors to the top centre of the
+      active screen either way: with a notch it grows out of it, without one it is a tab from the menu bar.
+      One code path.</p></div>
+    <div class="card"><h4>boring.notch is GPL-3.0</h4>
+      <p>So we take the idea, not the code: linking it would make Memoir GPL. It is also a whole app rather than
+      a package. A borderless non-activating <code>NSPanel</code> is standard AppKit, and Memoir already uses one.</p></div>
+  </div>
+</section>
+
+<!-- ===== 03 CHAT ===== -->
+<section>
+  <div class="eyebrow">03: Conversation</div>
+  <h2>You were right<br>about history.</h2>
+  <p>I argued against a transcript. That was wrong, and our own tests prove it: <code>"and before that?"</code>
+  and <code>"ok gotcha and what about my last page visited on chrome"</code> are both passing eval cases, and
+  neither means anything without the turn before it. Follow-ups are already how you talk to it.</p>
+
+  <p>Your distinction is the one that makes it safe:</p>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card"><h4>Kept as history</h4>
+      <p>The visible transcript, and the context for follow-ups. Lives in the session, scrolls back, survives
+      dismissing the panel. Already written to <code>asks.jsonl</code> for evals.</p></div>
+    <div class="card" style="border-color:#2a2a2e"><h4>Never written to memory</h4>
+      <p>The transcript never becomes a capture, an entity, or evidence. This is exactly the bug that ate a
+      day: Memoir read its own answers back and served them as fact.</p></div>
+  </div>
+
+  <div class="note"><b>The rule:</b> the conversation is something Memoir <em>remembers saying</em>, never
+  something it <em>learns as true</em>. Two different stores, and only one of them can ever be cited.</div>
+</section>
+
+<!-- ===== 04 PANEL ===== -->
+<section>
+  <div class="eyebrow">04: The full window</div>
+  <h2>Only when you<br>need to dig.</h2>
+  <p>The dropdown covers everything in the moment. A real window exists for the times it cannot: searching
+  months of memory, editing an entity, checking provenance. It is the browser Memoir already has, not a second
+  home.</p>
+
+  <div class="card" style="margin-top:26px;padding:24px">
+    <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap" id="tabs">
+      <button class="pill solid" data-p="today">Today</button>
+      <button class="pill ghost" data-p="todos">Todos</button>
+      <button class="pill ghost" data-p="memory">Memory</button>
+    </div>
+    <div id="pane"></div>
+  </div>
+</section>
+
+<!-- ===== 05 FOCUS ===== -->
+<section>
+  <div class="eyebrow">05: Focus</div>
+  <h2>No tab needed.</h2>
+  <p>Say <em>“start a 25 minute timer”</em>. The menu bar shows the countdown beside the cutout. Open the
+  panel and it is a ring around Memoir.</p>
+
+  <div class="card" style="margin-top:26px">
+    <div class="ringrow">
+      <div>
+        <div class="ring">
+          <svg viewBox="0 0 120 120" width="150" height="150">
+            <circle cx="60" cy="60" r="53" fill="none" stroke="#1c1c1f" stroke-width="6"/>
+            <circle id="arc" cx="60" cy="60" r="53" fill="none" stroke="#fff" stroke-width="6"
+                    stroke-linecap="round" stroke-dasharray="333" stroke-dashoffset="96"/>
+          </svg>
+          <div class="mid" id="ringface" style="width:150px"></div>
+        </div>
+        <div class="rt" id="rt">18:42</div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <ul class="t">
+          <li>Face goes <b>thinking</b> and volunteers nothing.</li>
+          <li>Nudges suppressed: focus suppression already exists in the restraint engine.</li>
+          <li>Ends on <b>celebrate</b>, one sound, back to idle.</li>
+          <li>The session lands in your day, so “how long did I focus” is answerable.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 06 TOLD VS GUESSED ===== -->
+<section>
+  <div class="eyebrow">06: The one badge worth having</div>
+  <h2>Told, or guessed.</h2>
+  <p>Everything else on screen loses its badge. This one stays, because every extraction bug in this project
+  came from Memoir guessing, and if you cannot see which rows are guesses, you inherit our uncertainty without
+  being told.</p>
+  <div class="grid g2" style="margin-top:22px">
+    <div class="card"><span class="mark you">you told me</span>
+      <p style="margin-top:12px">Never overwritten, never downgraded, never merged away. Syncs to Reminders.</p></div>
+    <div class="card"><span class="mark inf">picked up</span>
+      <p style="margin-top:12px">Inferred from your screen. Useful, sometimes wrong, always correctable. Does
+      not sync until you promote it.</p></div>
+  </div>
+</section>
+
+<!-- ===== 07 NOT COPYING ===== -->
+<section>
+  <div class="eyebrow">07: Still not copying</div>
+  <h2>One thing only.</h2>
+  <p>Taby shows <code>16:00 · 88%</code> productivity. We can honestly say how long an app was frontmost; we
+  cannot say whether that was productive. Hours are a fact, productivity is a judgement, and inventing the
+  second is the same class of mistake as inventing a URL.</p>
+  <p class="small">Habits are deferred rather than rejected: a habit tracker is its own product with its own
+  retention mechanics, and todos should earn it first.</p>
+</section>
+
+</main>
+
+<script>
+/* Face, drawn Taby-weight: solid filled shapes, no strokes. */
+const E = {
+  idle:      {l:1,   r:1,   curve:.22, open:.22, tilt:0,   brow:0},
+  thinking:  {l:.72, r:1,   curve:-.1, open:.05, tilt:-5,  brow:-3},
+  happy:     {l:1,   r:1,   curve:.75, open:.55, tilt:2,   brow:0},
+  wink:      {l:1,   r:.12, curve:.7,  open:.4,  tilt:4,   brow:0},
+  celebrate: {l:1,   r:1,   curve:1,   open:.95, tilt:-3,  brow:0},
+  alert:     {l:1.2, r:1.2, curve:.05, open:.6,  tilt:0,   brow:-6},
+  concerned: {l:.9,  r:.9,  curve:-.7, open:.1,  tilt:3,   brow:4},
+  sleepy:    {l:.14, r:.14, curve:.1,  open:.05, tilt:6,   brow:0},
+};
+const TRIG = {
+  idle:"nothing happening",
+  thinking:"answering, or a timer is running",
+  happy:"answer delivered",
+  wink:"saved what you told it",
+  celebrate:"todo done, or focus finished",
+  alert:"a nudge, or due soon",
+  concerned:"overdue, or it had to refuse",
+  sleepy:"idle, or quiet hours",
+};
+
+function face(t, px){
+  const eyeW = 26, eyeH = 46 * t.l, eyeH2 = 46 * t.r;
+  const ex = 27, ey = 40;
+  // Eyes: filled rounded shapes. A closed eye collapses to a thick bar.
+  function eye(cx, h){
+    const hh = Math.max(5, h);
+    return `<rect x="${cx-eyeW/2}" y="${ey - hh/2 + (t.brow||0)}" width="${eyeW}" height="${hh}"
+            rx="${Math.min(eyeW/2, hh/2)}" fill="#fff"/>`;
+  }
+  // Mouth: filled white shape; a tongue appears once it is properly open.
+  const mw = 40, my = 84, o = t.open * 26, c = t.curve * 12;
+  let mouth;
+  if (o > 6){
+    mouth = `<path d="M${50-mw/2},${my-4} Q50,${my-10-c} ${50+mw/2},${my-4}
+                     Q${50+mw/2},${my+o} 50,${my+o} Q${50-mw/2},${my+o} ${50-mw/2},${my-4} Z" fill="#fff"/>
+             <path d="M${50-mw/4},${my+o-9} Q50,${my+o+4} ${50+mw/4},${my+o-9} Z" fill="#f2637f"/>`;
+  } else {
+    mouth = `<path d="M${50-mw/2.6},${my-2} Q50,${my-2+c*1.6} ${50+mw/2.6},${my-2}" fill="none"
+                   stroke="#fff" stroke-width="7" stroke-linecap="round"/>`;
+  }
+  return `<svg viewBox="0 0 100 110" width="${px}" height="${px*1.1}">
+    <g transform="rotate(${t.tilt} 50 60)">${eye(50-ex, eyeH)}${eye(50+ex, eyeH2)}${mouth}</g></svg>`;
+}
+
+document.getElementById("faces").innerHTML = Object.keys(TRIG).map(k =>
+  `<div class="fcell">${face(E[k],62)}<div class="nm">${k}</div><div class="tg">${TRIG[k]}</div></div>`).join("");
+document.getElementById("menuface").innerHTML = face(E.idle,20);
+document.getElementById("dropface").innerHTML = face(E.thinking,20);
+document.getElementById("ringface").innerHTML = face(E.thinking,74);
+
+/* Panels */
+const P = {
+today:`<div class="bars">${[24,40,62,70,86,52,30,74,100,90,84,40,26].map((h,i)=>
+    `<i class="${h>80?'hot':''}" style="height:${h}%"></i>`).join("")}</div>
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c5c62;margin-top:8px">
+    <span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+  <div style="font-size:15px;color:#9b9ba0;margin-top:18px">Peak at <b style="color:#fff">16:00–19:00</b>.</div>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card" style="padding:18px 20px"><h4 style="font-size:13px;color:#65656b;font-weight:600">Tracked</h4>
+      <div style="font-size:28px;font-weight:750;letter-spacing:-.03em">6h 12m</div></div>
+    <div class="card" style="padding:18px 20px"><h4 style="font-size:13px;color:#65656b;font-weight:600">Focused</h4>
+      <div style="font-size:28px;font-weight:750;letter-spacing:-.03em">2h 05m</div></div>
+    <div class="card" style="padding:18px 20px"><h4 style="font-size:13px;color:#65656b;font-weight:600">Mostly in</h4>
+      <div style="font-size:20px;font-weight:700;margin-top:6px">Xcode</div></div>
+  </div>`,
+todos:`<div class="trow"><span class="tick2"></span><div class="tx">Send the Q3 invoice
+    <div class="sub">Friday, 5:00 PM</div></div><span class="mark late">overdue</span><span class="mark you">you told me</span></div>
+  <div class="trow"><span class="tick2"></span><div class="tx">Call the accountant
+    <div class="sub">Tomorrow, 10:00 · in Reminders</div></div><span class="mark you">you told me</span></div>
+  <div class="trow"><span class="tick2"></span><div class="tx">Reply to Marco about the migration notes
+    <div class="sub">Seen in Slack, Friday 14:02</div></div><span class="mark inf">picked up</span></div>
+  <div class="trow"><span class="tick2 on"></span><div class="tx"><s>Ship the grounding guards</s>
+    <div class="sub">Done 16:48</div></div><span class="mark you">you told me</span></div>`,
+memory:`<div class="trow"><div class="tx">Kandili<div class="sub">Project · 34 mentions · 2h ago</div></div>
+    <span class="mark you">you told me</span></div>
+  <div class="trow"><div class="tx">The wifi password is on the fridge<div class="sub">Note · you told me, 2 Aug</div></div>
+    <span class="mark you">you told me</span></div>
+  <div class="trow"><div class="tx">screenpipe/screenpipe<div class="sub">Project · 12 captures · traceable</div></div>
+    <span class="mark inf">picked up</span></div>
+  <div class="trow"><div class="tx">Marco<div class="sub">Person · 8 mentions</div></div>
+    <span class="mark inf">picked up</span></div>`,
+};
+/* Dropdown panes: the same data, sized for a panel that hangs off the notch. */
+const D = {
+chat:`<div class="chat">
+    <div class="me">When am I most productive?</div>
+    <div class="memoir">Peak at <b style="color:#fff">16:00–19:00</b>. Want me to schedule something then?</div>
+    <div class="me">what was that tweet about claude skills</div>
+    <div class="memoir">The tweet was about Claude skills wrapped in an SMS app.</div>
+    <div class="me">remind me to send the invoice friday</div>
+    <div class="confirm"><span class="tick">✓</span>
+      <span><b>Confirmed</b> · Send the invoice · Friday, 5:00 PM</span></div>
+  </div>`,
+todos:`<div class="trow"><span class="tick2"></span><div class="tx">Send the Q3 invoice
+    <div class="sub">Friday, 5:00 PM</div></div><span class="mark late">overdue</span></div>
+  <div class="trow"><span class="tick2"></span><div class="tx">Reply to Marco
+    <div class="sub">Yesterday</div></div><span class="mark late">overdue</span></div>
+  <div class="trow"><span class="tick2"></span><div class="tx">Call the accountant
+    <div class="sub">Tomorrow, 10:00 · in Reminders</div></div><span class="mark you">you told me</span></div>
+  <div class="trow"><span class="tick2 on"></span><div class="tx"><s>Ship the grounding guards</s>
+    <div class="sub">Done 16:48</div></div></div>`,
+today:`<div class="bars" style="height:70px">${[24,40,62,70,86,52,30,74,100,90,84,40,26].map(h=>
+    `<i class="${h>80?'hot':''}" style="height:${h}%"></i>`).join("")}</div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:#5c5c62;margin-top:7px">
+    <span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+  <div style="display:flex;gap:26px;margin-top:18px">
+    <div><div style="font-size:12px;color:#65656b;font-weight:600">Tracked</div>
+      <div style="font-size:22px;font-weight:750;letter-spacing:-.03em">6h 12m</div></div>
+    <div><div style="font-size:12px;color:#65656b;font-weight:600">Focused</div>
+      <div style="font-size:22px;font-weight:750;letter-spacing:-.03em">2h 05m</div></div>
+    <div><div style="font-size:12px;color:#65656b;font-weight:600">Mostly in</div>
+      <div style="font-size:18px;font-weight:700;margin-top:3px">Xcode</div></div>
+  </div>`,
+};
+const dpane = document.getElementById("dpane"), dcount = document.getElementById("dcount");
+document.querySelectorAll("#dnav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#dnav button").forEach(x => x.setAttribute("aria-selected","false"));
+  b.setAttribute("aria-selected","true");
+  dpane.innerHTML = D[b.dataset.d];
+  dcount.innerHTML = b.dataset.d === "today" ? "" : '<span class="chip">2 overdue</span>';
+});
+dpane.innerHTML = D.chat;
+
+const pane = document.getElementById("pane");
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.className = "pill ghost");
+  b.className = "pill solid";
+  pane.innerHTML = P[b.dataset.p];
+});
+pane.innerHTML = P.today;
+
+let left = 18*60+42;
+const arc = document.getElementById("arc"), rt = document.getElementById("rt");
+setInterval(()=>{
+  left = left>0 ? left-1 : 25*60;
+  rt.textContent = `${String(Math.floor(left/60)).padStart(2,"0")}:${String(left%60).padStart(2,"0")}`;
+  arc.setAttribute("stroke-dashoffset", String(333*(1-left/(25*60))));
+},1000);
+</script>
+</body>
+</html>

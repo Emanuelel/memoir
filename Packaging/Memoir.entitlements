@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Hardened-runtime entitlements for Memoir.app. Used by Scripts/release.sh AND
+    Scripts/build-app.sh. Both sign with --options runtime, so both need this file.
+
+    CORRECTED 19 Aug 2026. This header used to say build-app.sh signed without entitlements
+    "because a local ad-hoc build is not subject to the hardened runtime's resource gate."
+    That is false. The gate belongs to --options runtime, which the dev build has always
+    passed, and the note below about the failure being discoverable only from a notarised
+    DMG was wrong for the same reason. It was found the ordinary way instead: "Read them
+    now" reported that nothing had been granted, and the Photos pane in System Settings had
+    no Memoir row to switch on, because a request that never reaches tccd never creates one.
+
+    WHY THESE THREE, AND NOTHING ELSE
+    =================================
+    Under the hardened runtime, TCC refuses a protected resource outright when the binary
+    does not carry the matching entitlement, and it refuses *silently*: the app never
+    appears in the System Settings list for that resource, so the user sees a feature that
+    does nothing rather than a permission they can grant. An Info.plist usage string alone
+    is not enough. This is true of every build signed with --options runtime, the dev build
+    included, and build-app.sh now verifies the keys survived signing rather than trusting
+    that they were passed.
+
+    The list below is not copied from a blog post. It is the set of keys that `tccd`, the
+    daemon that actually enforces this, carries as strings:
+
+        strings /System/Library/PrivateFrameworks/TCC.framework/Support/tccd \
+            | grep '^com.apple.security.'
+
+    which on macOS 15/26 yields exactly six recognised keys:
+
+        com.apple.security.automation.apple-events
+        com.apple.security.device.audio-input
+        com.apple.security.device.camera
+        com.apple.security.personal-information.addressbook
+        com.apple.security.personal-information.calendars
+        com.apple.security.personal-information.photos-library
+
+    Memoir needs four of them. The other two (audio-input's sibling `device.camera`, and
+    nothing else) it must not ask for.
+
+    The fourth, photos-library, was added when the photo library became an import source. It is
+    read for two fields per image, the date and the coordinate, and PhotoKit has no read-only
+    access level: the only alternative to `.readWrite` is `.addOnly`, which grants writing and
+    forbids reading, the exact inverse of what is wanted. So the system prompt necessarily asks
+    for more than Memoir takes, and the onboarding and Settings copy both say what is actually
+    read. `PhotoImporter` never calls PHImageManager, so no image reaches the memory; PhotoFrames does,
+    to show today's photographs above the journal, and keeps none of them.
+
+    DELIBERATELY ABSENT
+    ===================
+    com.apple.security.app-sandbox
+        Never. The sandbox makes the accessibility tree of other processes unreadable, and
+        reading that tree is the entire product. Adding this key does not degrade Memoir,
+        it ends it.
+
+    com.apple.security.accessibility
+        Does not exist. Several widely-cited answers tell you to declare it for a hardened
+        runtime; `tccd` has never heard of it (see the grep above: it is not in the six).
+        It is a stale App Sandbox-era artefact. Accessibility is granted by the user in
+        System Settings against NSAccessibilityUsageDescription and the code signature, and
+        there is no entitlement to declare. Adding it would be cargo cult in a file whose
+        whole job is to be exactly right.
+
+    Reminders, and speech recognition
+        Neither has an entitlement key of its own. EventKit's reminder store sits behind
+        com.apple.security.personal-information.calendars (there is no
+        ...personal-information.reminders in tccd's list, despite it turning up in write-ups
+        of the sandbox). SFSpeechRecognizer is gated by NSSpeechRecognitionUsageDescription
+        and nothing else.
+
+    com.apple.security.cs.disable-library-validation
+        The usual reflex for a hardened runtime, and wrong here. Memoir has no third-party
+        dependencies at all (Apple frameworks plus the system SQLite), so it never loads
+        code Apple did not sign. Declaring it would weaken the runtime in exchange for
+        nothing, and reviewers reasonably read it as a smell.
+
+    com.apple.security.cs.allow-jit, ...allow-unsigned-executable-memory, ...debugger
+        No JIT, no self-modifying code, no debugging in a shipped build.
+
+    Screen Recording (CGPreflightScreenCaptureAccess, used for window titles) likewise has
+    no entitlement: it is TCC-only, and Memoir degrades to app names without it.
+-->
+<plist version="1.0">
+<dict>
+    <!-- Reading which app is frontmost, so captured text can be attributed to the work it
+         belongs to. Declared in Info.plist as NSAppleEventsUsageDescription. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+
+    <!-- Dictation into the ask bar, and only while the bar is open. Without this key the
+         microphone is refused before the user is ever asked, and Memoir does not appear
+         under Privacy & Security > Microphone at all. NSMicrophoneUsageDescription. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- Two things sit behind this one key. Writing confirmed todos to Reminders via
+         EventKit (reminders have no key of their own, as noted above) and reading the
+         calendar during first-run import, which is where a decade of real people and real
+         dates comes from on day one. NSRemindersFullAccessUsageDescription and
+         NSCalendarsFullAccessUsageDescription respectively. -->
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
+
+    <!-- Reading Contacts once, during first-run import, to learn the names of the people in
+         the user's life. Without this key the notarised build does not merely fail to read
+         them: Memoir never appears under Privacy & Security > Contacts at all, so the user
+         is offered no way to grant it, the exact silent failure this file exists to prevent.
+         Read-only and one-shot; nothing is ever written back to the address book.
+         NSContactsUsageDescription. -->
+    <key>com.apple.security.personal-information.addressbook</key>
+    <true/>
+
+    <!-- Reading the photo library. Two different things, kept apart on purpose. What is stored is
+         metadata: creation date and coordinate per image, read by PhotoImporter, which does not
+         call PHImageManager at all. What is shown is today's photographs, as thumbnails above the
+         journal composer, fetched by PhotoFrames while that pane is open and kept nowhere.
+         Screenshots are skipped by both. Without this key the notarised build never appears under
+         Privacy & Security > Photos, so the user cannot grant it even if they want to.
+         NSPhotoLibraryUsageDescription. -->
+    <key>com.apple.security.personal-information.photos-library</key>
+    <true/>
+</dict>
+</plist>

@@ -1,0 +1,35 @@
+# Questions asked against the REAL database, graded structurally.
+#
+# Content is unknowable here (tomorrow's answer is different from today's), so nothing
+# below asserts what the answer should SAY. Every check is a property that must hold no
+# matter what is in the record: citations resolve, nothing is quoted that was never seen,
+# a claim about now admits it when the record stopped yesterday, a false claim is refused.
+#
+# These are the questions a person actually asks, in their words. Add to them freely; the
+# grading does not care what they are about.
+
+# ── the daily questions ──────────────────────────────────────────────────────
+where did I leave off
+what was I working on before lunch
+what did I do today
+what did I do yesterday
+how much time did I spend in chrome today
+how long have I been working
+what was the last thing I did
+summarise my day
+
+# ── recall, from a half-remembered paraphrase ────────────────────────────────
+what was that repo about screen memory
+what url was the motion website
+what was the last site I was on
+
+# ── things the record cannot know: these must be refused, never answered ─────
+!refuse how much money did I spend today
+!refuse what is my bank balance
+!refuse what did I eat for lunch
+!refuse who did I call on the phone
+
+# ── claims that are false: verify must not vouch for them ────────────────────
+!verify-absent the moon is made of cheese
+!verify-absent this database runs on PostgreSQL
+!verify-absent zzzqqq nonexistent token

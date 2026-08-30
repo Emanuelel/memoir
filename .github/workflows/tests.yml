@@ -1,0 +1,43 @@
+name: tests
+
+# Runs on every pull request, which is the point: a contributor should learn their change
+# broke CF-1 from a red check in ninety seconds, not from a review comment two days later.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A second push to the same PR cancels the first. Nobody needs the results of a commit
+  # that has already been replaced.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # macOS 26, not 15. The deployment target is 15 and the app runs there, with VoiceInput
+    # correctly guarded by @available(macOS 26.0, *). But `SpeechAnalyzer` and
+    # `SpeechTranscriber` have to exist in the SDK for the file to compile at all. The first
+    # CI run failed on exactly that, which is the sort of thing nobody discovers on their own
+    # machine.
+    runs-on: macos-26
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        # Printed, not pinned: when this breaks it is almost always the SDK version, and the
+        # log should say which one it had.
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-version
+          swift --version
+
+      # verify.sh --fast, not `swift build && swift test`. It runs the same build and tests as
+      # stages 1-2 and then the four checks that a bare test run cannot make: the graded answer
+      # evals, the MCP binary over a real pipe, the privacy containment grep, and the TODO
+      # hygiene check. Stages 4-6 are skipped because they need signing. ~1 minute locally.
+      - name: Verify
+        run: bash Scripts/verify.sh --fast

@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memoir: Anatomy of an AI-Native Product</title>
+<style>
+:root{
+  --bg:#07090c; --bg2:#0b0f14; --panel:#0e141b; --line:#1d2a36;
+  --ink:#d7e3ee; --dim:#7e93a6; --faint:#4a5c6d;
+  --acc:#ff7a45; --acc2:#4ee0c1; --warn:#ffc857; --bad:#ff5d6c; --good:#5fdd8f;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(var(--line) 1px,transparent 1px) 0 0/64px 64px,
+    linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/64px 64px;
+  opacity:.16;
+  mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 20%,transparent 75%)}
+main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 24px 140px}
+
+/* ---------- type ---------- */
+h1,h2,h3,h4,.mono{font-family:var(--mono)}
+h2{font-size:clamp(20px,2.6vw,30px);letter-spacing:.22em;text-transform:uppercase;
+  margin:0 0 6px;font-weight:600}
+h3{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc2);
+  margin:34px 0 12px;font-weight:600}
+h4{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+p{margin:0 0 14px;color:#b9c9d8;max-width:74ch}
+a{color:var(--acc2)}
+code{font-family:var(--mono);font-size:.88em;background:#131c25;border:1px solid var(--line);
+  border-radius:4px;padding:1px 5px;color:#a9e7d8}
+.lead{font-size:18px;color:#c8d8e6;max-width:72ch}
+.dim{color:var(--dim)}
+.small{font-size:13.5px;line-height:1.6}
+
+/* ---------- section chrome ---------- */
+section{padding:78px 0 10px;scroll-margin-top:70px}
+.sechead{display:flex;align-items:baseline;gap:16px;margin-bottom:22px;
+  border-bottom:1px solid var(--line);padding-bottom:16px;flex-wrap:wrap}
+.num{font-family:var(--mono);font-size:12px;color:var(--acc);letter-spacing:.2em;
+  border:1px solid #3a2318;background:#1a1009;padding:4px 9px;border-radius:4px;flex:none}
+.sechead p{margin:0;font-size:14px;color:var(--dim)}
+
+/* ---------- hero ---------- */
+header{padding:96px 0 30px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.42em;color:var(--acc);
+  text-transform:uppercase;margin-bottom:26px}
+h1{font-size:clamp(30px,6.4vw,66px);letter-spacing:.16em;margin:0 0 14px;font-weight:600;
+  text-transform:uppercase;line-height:1.08}
+.sub{font-family:var(--mono);font-size:clamp(10px,1.7vw,13px);letter-spacing:.28em;
+  color:var(--dim);text-transform:uppercase;margin-bottom:38px}
+.stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.stat{border:1px solid var(--line);background:var(--panel);border-radius:6px;
+  padding:12px 18px;min-width:112px}
+.stat b{display:block;font-family:var(--mono);font-size:21px;color:var(--acc2);font-weight:600}
+.stat span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase}
+
+/* ---------- nav ---------- */
+nav{position:sticky;top:0;z-index:50;background:rgba(7,9,12,.9);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line);margin-bottom:-1px}
+.navin{max-width:1180px;margin:0 auto;padding:9px 24px;display:flex;gap:4px;
+  overflow-x:auto;scrollbar-width:none}
+.navin::-webkit-scrollbar{display:none}
+nav a{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);text-decoration:none;padding:6px 10px;border-radius:4px;white-space:nowrap}
+nav a:hover{color:var(--acc2);background:#101922}
+
+/* ---------- generic boxes ---------- */
+.box{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:20px 22px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.rule{border-left:2px solid var(--acc);padding:2px 0 2px 16px;margin:18px 0;color:#c8d8e6}
+.rule b{color:var(--acc)}
+
+/* ---------- the animated pipeline ---------- */
+.stage{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:18px;margin-bottom:14px}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  background:#0c141c;color:var(--dim);border:1px solid var(--line);border-radius:5px;
+  padding:7px 13px;cursor:pointer}
+.tab[aria-selected=true]{color:var(--bg);background:var(--acc2);border-color:var(--acc2);font-weight:600}
+.flowwrap{overflow-x:auto;padding:6px 0 12px}
+.flow{display:flex;align-items:stretch;gap:0;min-width:940px}
+.node{flex:1;min-width:104px;border:1px solid var(--line);background:#0b1219;border-radius:7px;
+  padding:11px 9px;text-align:center;position:relative;transition:.35s;cursor:pointer}
+.node .t{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink);
+  line-height:1.35;display:block}
+.node .n{font-family:var(--mono);font-size:9px;color:var(--faint);display:block;margin-bottom:5px}
+.node .ms{font-family:var(--mono);font-size:9px;color:var(--faint);display:block;margin-top:6px}
+.node.on{border-color:var(--acc);background:#1a1109;box-shadow:0 0 0 1px var(--acc),0 0 26px -6px var(--acc)}
+.node.on .t{color:var(--acc)}
+.node.done{border-color:#2c4a3e;background:#0c1613}
+.node.done .t{color:var(--good)}
+.node.gate.on{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad),0 0 26px -6px var(--bad);background:#190c0f}
+.node.gate.on .t{color:var(--bad)}
+.arrow{flex:none;width:22px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);color:var(--faint);font-size:12px;transition:.3s}
+.arrow.lit{color:var(--acc)}
+.ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+button.ctl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  background:#101a23;color:var(--ink);border:1px solid var(--line);border-radius:5px;
+  padding:8px 15px;cursor:pointer}
+button.ctl:hover{border-color:var(--acc2);color:var(--acc2)}
+button.ctl.primary{background:var(--acc);border-color:var(--acc);color:#140801;font-weight:700}
+.progress{flex:1;min-width:110px;height:3px;background:#16212c;border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.detail{border-top:1px solid var(--line);padding-top:16px;margin-top:4px;min-height:190px}
+.detail .step{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--acc);
+  text-transform:uppercase;margin-bottom:6px}
+.detail h4.dt{font-family:var(--mono);font-size:17px;color:var(--ink);letter-spacing:.04em;
+  text-transform:none;margin:0 0 10px}
+.detail p{font-size:14.5px;margin-bottom:10px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:4px 9px;border-radius:4px;
+  border:1px solid var(--line);background:#0c141c;color:var(--dim)}
+.chip.hot{border-color:#4a2a1a;background:#1a1009;color:var(--acc)}
+.chip.cool{border-color:#1c3a34;background:#0b1614;color:var(--acc2)}
+.chip.risk{border-color:#3d1c22;background:#180c0f;color:var(--bad)}
+.payload{font-family:var(--mono);font-size:11.5px;background:#080d12;border:1px solid var(--line);
+  border-left:2px solid var(--acc2);border-radius:5px;padding:10px 12px;color:#9fd8ca;
+  white-space:pre-wrap;margin-top:12px;overflow-x:auto}
+
+/* ---------- tiers ---------- */
+.tier{border:1px solid var(--line);border-radius:8px;padding:16px 18px;background:var(--panel);
+  border-left-width:3px}
+.tier.t0{border-left-color:var(--good)}
+.tier.t1{border-left-color:var(--acc2)}
+.tier.t2{border-left-color:var(--warn)}
+.tier.t3{border-left-color:var(--bad)}
+.tier .lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--faint);
+  text-transform:uppercase}
+.tier .name{font-family:var(--mono);font-size:14px;margin:4px 0 8px;color:var(--ink)}
+.can,.cant{font-size:13px;margin:3px 0;padding-left:17px;position:relative;color:#b0c2d2}
+.can::before{content:"✓";position:absolute;left:0;color:var(--good)}
+.cant::before{content:"✗";position:absolute;left:0;color:var(--bad)}
+
+/* ---------- chart ---------- */
+.chart{font-family:var(--mono);font-size:11px}
+.chart .row{display:flex;align-items:center;gap:10px;margin:5px 0}
+.chart .lbl{width:120px;color:var(--dim);flex:none;text-align:right}
+.chart .bar{height:15px;border-radius:3px;position:relative}
+.chart .bar.ok{background:linear-gradient(90deg,#1e4a35,var(--good))}
+.chart .bar.no{background:linear-gradient(90deg,#4a1e26,var(--bad))}
+.thresh{border-left:2px dashed var(--acc);padding-left:10px;margin:12px 0 4px;color:var(--acc);
+  font-family:var(--mono);font-size:11px}
+
+/* ---------- guards ---------- */
+.guard{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.guard .gh{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;gap:10px}
+.guard .gn{font-family:var(--mono);font-size:12.5px;color:var(--ink);letter-spacing:.04em}
+.guard .gb{padding:14px 16px}
+.bad-line,.good-line{font-family:var(--mono);font-size:11.5px;padding:7px 10px;border-radius:5px;
+  margin:5px 0;line-height:1.5}
+.bad-line{background:#170b0e;border:1px solid #3a1c22;color:#ff9aa4}
+.good-line{background:#0a1512;border:1px solid #1c3a30;color:#8ce0b6}
+
+/* ---------- loop diagram ---------- */
+.loop{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  align-items:stretch}
+.loopnode{border:1px solid var(--line);background:#0b1219;border-radius:7px;padding:12px;
+  font-family:var(--mono);font-size:11px;line-height:1.5;position:relative}
+.loopnode b{color:var(--acc);display:block;margin-bottom:4px;font-size:10px;letter-spacing:.12em}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);
+  font-weight:600}
+td{padding:13px 12px;border-bottom:1px solid #141d26;vertical-align:top;color:#b6c7d6}
+td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--ink);width:22%}
+tr:hover td{background:#0b1219}
+.pill{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;padding:3px 7px;border-radius:3px;
+  text-transform:uppercase;white-space:nowrap}
+.pill.keep{background:#0e1f18;color:var(--good);border:1px solid #1e4030}
+.pill.rev{background:#231a08;color:var(--warn);border:1px solid #4a3a12}
+
+/* ---------- lessons ---------- */
+.lesson{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:18px 20px;
+  position:relative;padding-left:56px}
+.lesson .ln{position:absolute;left:18px;top:18px;font-family:var(--mono);font-size:20px;
+  color:#1f2f3d;font-weight:700}
+.lesson b{font-family:var(--mono);font-size:13px;color:var(--acc2);display:block;margin-bottom:6px;
+  letter-spacing:.04em}
+.lesson p{font-size:13.5px;margin:0;color:#adbfcf}
+
+footer{text-align:center;padding:70px 0 0;color:var(--faint);font-family:var(--mono);font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;border-top:1px solid var(--line);margin-top:80px}
+
+@media (max-width:640px){
+  main{padding:0 16px 90px}
+  .navin{padding:9px 16px}
+  td:first-child{width:auto}
+  .chart .lbl{width:78px;font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<nav><div class="navin">
+  <a href="#shape">Shape</a><a href="#flow">Request flow</a><a href="#boundaries">LLM boundaries</a>
+  <a href="#routing">Routing</a><a href="#retrieval">Retrieval</a><a href="#grounding">Grounding</a>
+  <a href="#evals">Evals</a><a href="#drift">Drift</a><a href="#tradeoffs">Trade-offs</a>
+  <a href="#lessons">Lessons</a>
+</div></nav>
+
+<main>
+
+<header>
+  <div class="eyebrow">Anatomy of an AI-native product</div>
+  <h1>Memoir</h1>
+  <div class="sub">A local memory · one machine · no network · four brains · one honest answer</div>
+  <div class="stats">
+    <div class="stat"><b>0</b><span>dependencies</span></div>
+    <div class="stat"><b>16.4k</b><span>lines source</span></div>
+    <div class="stat"><b>10.6k</b><span>lines tests</span></div>
+    <div class="stat"><b>249</b><span>tests</span></div>
+    <div class="stat"><b>40</b><span>core flows</span></div>
+    <div class="stat"><b>48</b><span>graded evals</span></div>
+  </div>
+  <p class="small dim" style="max-width:60ch;margin:20px auto 0">
+    Memoir watches what is on your screen, remembers it, and answers questions about it.
+    Everything below is the real system: the numbers are measured, the failures are ones
+    that actually shipped and got caught.
+  </p>
+</header>
+
+<!-- ============ 01 SHAPE ============ -->
+<section id="shape">
+  <div class="sechead">
+    <span class="num">01</span>
+    <div><h2>The shape</h2><p>What the product is, and the constraints that decided everything else</p></div>
+  </div>
+
+  <p class="lead">Memoir is a memory, not a chatbot. It captures the text of whatever app you are
+  looking at, stores it locally, and lets you ask <em>"what was that thing?"</em> a week later.
+  The hard part is not the model. The hard part is that a memory which is confidently wrong
+  is worse than no memory at all.</p>
+
+  <div class="grid g3" style="margin-top:24px">
+    <div class="box"><h4>Constraint</h4><b class="mono" style="color:var(--acc2);font-size:14px">Zero dependencies</b>
+      <p class="small" style="margin-top:8px">No packages. Apple frameworks and SQLite only. A memory
+      you trust cannot have a supply chain you do not control.</p></div>
+    <div class="box"><h4>Constraint</h4><b class="mono" style="color:var(--acc2);font-size:14px">Nothing leaves</b>
+      <p class="small" style="margin-top:8px">Local by default. Tested structurally: a counting
+      URLProtocol fails the suite if any request is even attempted.</p></div>
+    <div class="box"><h4>Constraint</h4><b class="mono" style="color:var(--acc2);font-size:14px">Text only</b>
+      <p class="small" style="margin-top:8px">Accessibility tree, never screenshots. No pixels, no OCR,
+      no video buffer sitting on disk.</p></div>
+  </div>
+
+  <div class="rule"><b>The design axiom.</b> The model's job is to <em>phrase</em>, not to <em>know</em>.
+  Every fact in an answer must already exist in the evidence that was handed to it. Everything in this
+  document is downstream of that one sentence.</div>
+</section>
+
+<!-- ============ 02 FLOW ============ -->
+<section id="flow">
+  <div class="sechead">
+    <span class="num">02</span>
+    <div><h2>The request flow</h2><p>Press play. Watch one question travel the whole system.</p></div>
+  </div>
+
+  <div class="stage">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-track="read">Read path · asking</button>
+      <button class="tab" role="tab" aria-selected="false" data-track="write">Write path · capturing</button>
+    </div>
+
+    <div class="ctrls">
+      <button class="ctl primary" id="play">▶ Play</button>
+      <button class="ctl" id="prev">◀ Prev</button>
+      <button class="ctl" id="next">Next ▶</button>
+      <button class="ctl" id="reset">Reset</button>
+      <div class="progress"><i id="bar"></i></div>
+      <span class="chip mono" id="counter">1 / 10</span>
+    </div>
+
+    <div class="flowwrap"><div class="flow" id="pipeline"></div></div>
+
+    <div class="detail" id="detail"></div>
+  </div>
+
+  <p class="small dim">Click any node to jump to it. The nodes shaded red are <em>gates</em>: stages
+  whose entire job is to stop something from continuing.</p>
+</section>
+
+<!-- ============ 03 BOUNDARIES ============ -->
+<section id="boundaries">
+  <div class="sechead">
+    <span class="num">03</span>
+    <div><h2>LLM boundaries</h2><p>What each brain is allowed to do and, more importantly, what it is not</p></div>
+  </div>
+
+  <p class="lead">The single most useful thing we did was stop asking "which model is best" and start
+  asking "what is the <em>smallest</em> thing that can be trusted with this step". Four tiers, and work
+  falls to the cheapest one that can be held accountable for it.</p>
+
+  <div class="grid g2" style="margin-top:22px">
+    <div class="tier t0">
+      <div class="lab">Tier 0 · no model</div>
+      <div class="name">RulesOnlyBrain</div>
+      <p class="small">Deterministic SQL and string assembly. Always available, always the floor:
+      the product never says nothing.</p>
+      <div class="can">Count, sum, sort, list</div>
+      <div class="can">Time arithmetic over sessions</div>
+      <div class="cant">Cannot phrase naturally</div>
+      <div class="cant" style="color:var(--good)">Structurally cannot hallucinate, so it is exempt from the grounding guards</div>
+    </div>
+    <div class="tier t1">
+      <div class="lab">Tier 1 · on device</div>
+      <div class="name">Apple Foundation Models · ~3B · 4k ctx</div>
+      <p class="small">Free, private, offline. Also small enough to pattern-complete nonsense, so it is
+      allowed only narrow, bounded jobs.</p>
+      <div class="can">Classify into a closed set (<code>@Generable</code>)</div>
+      <div class="can">Phrase an answer over supplied evidence</div>
+      <div class="cant">Never asked to recall from its own weights</div>
+      <div class="cant">Never trusted with arithmetic</div>
+      <div class="cant">Never allowed to name a fact absent from context</div>
+    </div>
+    <div class="tier t2">
+      <div class="lab">Tier 2 · local network</div>
+      <div class="name">Qwen3-30B · Mac mini over Tailscale</div>
+      <p class="small">Same house, same trust boundary, so it does <em>not</em> sit behind the cloud consent
+      gate. Open-ended synthesis, and the judge for graded evals.</p>
+      <div class="can">Multi-hop reasoning over a long packet</div>
+      <div class="can">Grading eval answers as a judge</div>
+      <div class="cant">Unavailable when the mini sleeps: must degrade, never fail</div>
+    </div>
+    <div class="tier t3">
+      <div class="lab">Tier 3 · cloud</div>
+      <div class="name">Anthropic API · consent-gated</div>
+      <p class="small">Off unless explicitly enabled. Three separate tests exist purely to prove it can
+      never be selected by accident.</p>
+      <div class="can">Best quality when the user opts in</div>
+      <div class="cant">Never on fallback</div>
+      <div class="cant">Never on retry</div>
+      <div class="cant">Never when every local brain is unavailable</div>
+    </div>
+  </div>
+
+  <div class="rule"><b>The boundary that matters most.</b> A 3B model given an open question invents
+  a plausible answer. The same model given <em>"here are six captures, phrase what they say"</em> is
+  reliable. We did not make the model smarter. We made its job smaller.</div>
+</section>
+
+<!-- ============ 04 ROUTING ============ -->
+<section id="routing">
+  <div class="sechead">
+    <span class="num">04</span>
+    <div><h2>Routing, and how the threshold was chosen</h2><p>The cascade is easy. The calibrated confidence signal is the whole game.</p></div>
+  </div>
+
+  <p>Every question is classified into one of five categories before anything else happens, because
+  the category decides which context gets built and which tier answers. Two stages, cheapest first.</p>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="box">
+      <h4>Stage 1: free</h4>
+      <p class="small">Sentence embedding of the question, cosine against a centroid per category,
+      built from a handful of example phrasings. <b class="mono" style="color:var(--acc2)">~4 ms</b>,
+      no tokens, no network.</p>
+      <div class="payload">margin = best − second_best</div>
+      <p class="small" style="margin-top:10px">The margin is the point: it is the model telling you
+      how much to trust itself.</p>
+    </div>
+    <div class="box">
+      <h4>Stage 2: expensive</h4>
+      <p class="small">Only when the margin is thin. A <code>@Generable</code>-constrained classifier that
+      is structurally incapable of returning an invalid category.
+      <b class="mono" style="color:var(--warn)">~15 s</b>.</p>
+      <p class="small">If escalation fails, we return the unsure stage-1 answer with its low margin
+      attached, rather than losing the question. <b>Degrade, never drop.</b></p>
+    </div>
+  </div>
+
+  <h3>The measurement that set the threshold</h3>
+  <p class="small">16 real questions across all five categories. Stage 1 got 14 right. The interesting
+  part is not the accuracy. It is that both mistakes landed among the three lowest margins in the set.</p>
+
+  <div class="box chart" style="margin-top:14px">
+    <div class="row"><span class="lbl">correct · n=14</span>
+      <div class="bar ok" style="margin-left:20.9%;width:79.1%"></div></div>
+    <div class="row"><span class="lbl"></span>
+      <span class="dim" style="font-size:10px">margin 0.058 ────────────────────────── 0.278</span></div>
+    <div class="row" style="margin-top:12px"><span class="lbl">wrong · n=2</span>
+      <div class="bar no" style="margin-left:13.3%;width:11.9%"></div></div>
+    <div class="row"><span class="lbl"></span>
+      <span class="dim" style="font-size:10px">margin 0.037 ─── 0.070</span></div>
+    <div class="thresh">threshold = 0.075 · catches BOTH errors · sends only 2 of 14 correct answers to the model unnecessarily</div>
+  </div>
+
+  <p class="small" style="margin-top:14px">Result: <b class="mono" style="color:var(--good)">~87% of questions
+  answered in ~4 ms</b>, and the two the router got wrong both escalate for a second opinion. The
+  distributions overlap slightly, so no threshold is perfect. This is a precision/recall dial, not a
+  boundary, and it is documented as one in the source.</p>
+
+  <div class="rule"><b>Transferable.</b> A cascade that escalates on <em>"parsing failed"</em> is a fixed rule
+  and cannot know when it is wrong. A cascade that escalates on a <em>calibrated confidence margin</em> knows
+  when it does not know. That difference is the load-bearing part of the FrugalGPT / RouteLLM literature,
+  and it is the part most implementations skip.</div>
+</section>
+
+<!-- ============ 05 RETRIEVAL ============ -->
+<section id="retrieval">
+  <div class="sechead">
+    <span class="num">05</span>
+    <div><h2>Retrieval</h2><p>Two searches, because each one fails in a way the other does not</p></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="box">
+      <h4>Keyword · SQLite FTS5 + BM25</h4>
+      <p class="small">Exact, cheap, explainable. Fails on paraphrase: you remember
+      <em>"wrapped in an sms app"</em>, the post said <em>"wrapped <b>into</b> a nice sms app <b>layer</b>"</em>,
+      and literal search returns nothing.</p>
+      <div class="bad-line">FTS5 joins terms with AND by default: every word had to appear. One
+      unusual word in your question and the whole query returns empty.</div>
+      <div class="good-line">Switched to OR + stopword removal. BM25 then ranks by how many terms hit
+      and how rare they are, which is what you wanted all along.</div>
+    </div>
+    <div class="box">
+      <h4>Semantic · NLEmbedding, on device</h4>
+      <p class="small">512-dim sentence vectors, ~4 ms each, embedded once at write time. Catches
+      paraphrase. Fails on long pages, badly.</p>
+      <div class="bad-line">A capture containing the exact phrase scored <b>0.306</b> as a whole,
+      <em>below</em> unrelated pages at <b>0.44</b>. Most of its characters were browser chrome, and a
+      sentence embedding averages meaning away.</div>
+      <div class="good-line">Split into overlapping 220-char passages; a capture is represented by its
+      <em>best</em> passage, not its average. Coarse whole-capture vectors shortlist, passages rank.</div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:14px;border-color:#3d1c22">
+    <h4 style="color:var(--bad)">The gap nobody noticed: it was built and never plugged in</h4>
+    <p class="small">The semantic index was complete, tested, and backfilled. And the context builder
+    never called it. Retrieval was keyword-only, and the failure it caused looked exactly like a
+    ranking bug:</p>
+    <div class="bad-line">Q: "what was that repo about screen memory" → <b>mem0ai/mem0</b><br>
+      <span class="dim">BM25 is right on the words: mem0's title literally says "Universal <b>memory</b>
+      layer". screenpipe's does not.</span></div>
+    <div class="good-line">Q: "what was that repo about screen memory" →
+      <b>n1ghtjar/Afterglance: AI-powered screen memory</b><br>
+      <span style="opacity:.75">One line wiring the index in. Words rank the wrong page first; meaning
+      ranks the right one.</span></div>
+  </div>
+
+  <h3>Presence in the packet is not prominence in it</h3>
+  <p class="small">Wiring the index in was not enough. The right page was now <em>in</em> the context
+  (at position 11, below the wrong one), and the model reads top-down. It still answered
+  <b>mem0ai/mem0</b> three times in five.</p>
+
+  <div class="grid g3" style="margin-top:14px">
+    <div class="box"><h4>Attempt 1: append</h4>
+      <p class="small">Semantic hits after keyword hits.</p>
+      <div class="bad-line">3/5 wrong. Present but buried.</div></div>
+    <div class="box"><h4>Attempt 2: fuse by rank</h4>
+      <p class="small">Reciprocal rank fusion: <code>Σ 1/(k + rank)</code>, k=60. Uses only
+      <em>position</em>, which is the one thing both searches express on the same scale.</p>
+      <div class="bad-line">Still mem0, and <b>correctly so</b>. Ranks (1,2) beat (3,1). Both
+      searches genuinely do like mem0.</div></div>
+    <div class="box"><h4>Attempt 3: a third signal</h4>
+      <p class="small">Exact phrase search. "screen memory" appears verbatim in Afterglance's page and
+      nowhere in mem0's.</p>
+      <div class="good-line">4/4 correct. One first-place finish in a list carrying information
+      neither of the others had.</div></div>
+  </div>
+
+  <div class="rule"><b>Why not just normalise the scores?</b> A BM25 of 8.2 and a cosine of 0.41 have
+  no common scale. Squashing them into one number would be a fiction dressed as arithmetic. RRF
+  discards the magnitudes and keeps only what is genuinely comparable: <em>where</em> each result
+  placed in its own list. When two rankers disagree, the fix is rarely a better weighting; it is
+  usually a third signal that settles it. Here that signal was <b>adjacency</b>: two words the asker
+  put side by side belong together, and the same two words scattered across a page do not.</div>
+
+  <div class="payload" style="margin-top:14px">question:  "what was that repo about <b style="color:#ffc857">screen memory</b>"
+
+  phrase   "screen memory"   → Afterglance  ①              ← only this list knows
+  keyword  screen OR memory  → mem0 ① · other ② · Afterglance ③
+  semantic best-passage cos  → Afterglance ① · mem0 ②
+  ─────────────────────────────────────────────────────
+  fused    Afterglance ① · mem0 ② · other ③</div>
+
+  <h3>Why brute force, and when to stop</h3>
+  <p class="small">Measured against the real corpus, not guessed:</p>
+  <div class="box"><table style="margin:0">
+    <tr><td>60-day retention</td><td>≈ 24k vectors</td><td>≈ 47 MB</td><td>≈ 25 ms / search</td></tr>
+    <tr><td>one year</td><td>≈ 146k vectors</td><td>≈ 285 MB</td><td>≈ 150 ms / search</td></tr>
+    <tr style="border-top:1px solid var(--line)"><td style="color:var(--acc)">ceiling</td>
+      <td colspan="3" class="small">100k vectors. Above it, a search becomes perceptible and an
+      approximate index finally earns its dependency. The code logs a warning when it gets there.</td></tr>
+  </table></div>
+  <p class="small dim" style="margin-top:12px">A vector database would save perhaps 20 ms at our size
+  while adding a dependency to a project whose reliability comes from having none. Retention caps growth,
+  so the corpus does not grow without bound. The decision is written down <em>with its expiry condition</em>,
+  which is the only honest way to defer one.</p>
+</section>
+
+<!-- ============ 06 GROUNDING ============ -->
+<section id="grounding">
+  <div class="sechead">
+    <span class="num">06</span>
+    <div><h2>Grounding guards</h2><p>Five enforcement passes. Every one exists because a real answer was wrong.</p></div>
+  </div>
+
+  <p class="lead">Asked <em>"what do I owe anyone"</em> against a database with zero commitments, and
+  handed <code>Commitments: none recorded</code> as the literal first line of its context, the model
+  answered <b style="color:var(--bad)">"You owe someone $100."</b> Moving the negative to the top did not
+  fix it. Strengthening the prompt did not fix it. A small model pattern-completes, and no amount of
+  instruction reliably stops it.</p>
+
+  <div class="rule"><b>So grounding is enforced, not requested.</b> The answer is parsed after
+  generation and every claim is checked against the evidence that produced it. A claim that is not
+  supported means the whole answer is thrown away and replaced with an honest refusal.</div>
+
+  <div class="grid g2" style="margin-top:22px">
+    <div class="guard">
+      <div class="gh"><span class="gn">ungroundedNumbers</span><span class="chip risk">fabrication</span></div>
+      <div class="gb">
+        <p class="small">Every figure in the answer must appear in the evidence.</p>
+        <div class="bad-line">"You owe someone $100" (against zero commitments)</div>
+        <p class="small dim" style="margin:10px 0 4px">Then it got defeated:</p>
+        <div class="bad-line">A page reading "100% local, 100% private" was grounding "$100"</div>
+        <div class="good-line">Currency became part of the token. A bare digit can no longer ground a
+        monetary claim. Small counts and years stay free: that is how a model says "two things".</div>
+      </div>
+    </div>
+
+    <div class="guard">
+      <div class="gh"><span class="gn">unsupportedHosts</span><span class="chip risk">invention</span></div>
+      <div class="gb">
+        <p class="small">Any domain named must exist in the evidence.</p>
+        <div class="bad-line">Asked about "lmuendeild" (a typo for lumenfield), it answered
+        "You were on https://lmuendeild.ai", inventing a domain by echoing the typo back as fact.</div>
+        <div class="good-line">Hosts are extracted from the answer and checked against the context.
+        Subdomains of a known host pass; scheme and <code>www.</code> normalise away.</div>
+      </div>
+    </div>
+
+    <div class="guard">
+      <div class="gh"><span class="gn">unsupportedActions</span><span class="chip risk">false memory</span></div>
+      <div class="gb">
+        <p class="small">Claiming the user <em>did</em> something requires attribution in the evidence.</p>
+        <div class="bad-line">"You created a note" (nothing of the kind had happened)</div>
+        <p class="small dim" style="margin:10px 0 4px">Then it got defeated:</p>
+        <div class="bad-line">A Finder column header reading "Date Created" satisfied the verb check</div>
+        <div class="good-line">Now requires actual attribution ("you created", "created by"), not
+        the bare verb anywhere on screen.</div>
+      </div>
+    </div>
+
+    <div class="guard">
+      <div class="gh"><span class="gn">isEcho + refusal strings</span><span class="chip risk">non-answer</span></div>
+      <div class="gb">
+        <p class="small">An answer that restates the question, or that emits a canned refusal phrase
+        while pretending to have content, is not an answer.</p>
+        <div class="bad-line">Q: "what was the motion website" → A: "The motion website."</div>
+        <div class="good-line">Caught and replaced with a real refusal, which is honest and therefore
+        more useful than a confident echo.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="small dim" style="margin-top:16px">Note the pattern in three of the four: <b>the first
+  version of the guard was defeated by real screen text.</b> Guards written against your imagination
+  fail. Guards written against your logs survive.</p>
+
+  <h3>A fifth guard: the answer that is true and empty</h3>
+  <div class="guard" style="margin-bottom:18px">
+    <div class="gh"><span class="gn">isTautology</span><span class="chip risk">no information</span></div>
+    <div class="gb">
+      <div class="bad-line">Q: "what was that repo about screen memory" → A: <b>"The repo was about
+      screen memory."</b></div>
+      <p class="small" style="margin:10px 0">Every guard passed. Nothing was fabricated, no figure
+      invented, and it is not a literal echo because the word order differs. It is simply, perfectly,
+      empty: the question in the indicative mood.</p>
+      <div class="good-line">If the reply introduces no content word the asker did not already supply,
+      it carries no information. Bounded to short replies: a long answer that reuses the question's
+      nouns is elaborating on them, which is exactly its job.</div>
+    </div>
+  </div>
+
+  <h3>Rejection falls to the floor, not to silence</h3>
+  <p class="small">Asked "what was I doing an hour ago", the model answered <em>"at 16:00"</em> when the
+  timeline said <b>16:49</b>. The figure guard correctly rejected the invented time, and the user got
+  <em>"I do not have anything recorded about that"</em> about an hour Memoir had a complete record of.
+  <b>The guard was right and the outcome was still wrong.</b></p>
+  <div class="good-line" style="font-size:12.5px">A rejected answer now falls to Tier 0, which reads
+  the store directly and is grounded by construction. Only when the floor has nothing either does Memoir
+  actually refuse. A guard should remove the lie, not the answer.</div>
+
+  <h3>The same mistake, three layers deep</h3>
+  <p class="small">That fallback then had to be corrected <b>twice</b>, and both corrections were the
+  same mistake wearing a different hat: <em>an eagerness to produce content where a refusal was the
+  honest answer.</em></p>
+
+  <div class="grid g3" style="margin-top:14px">
+    <div class="box" style="border-color:#3d1c22">
+      <h4 style="color:var(--bad)">Layer 1: the floor recites</h4>
+      <p class="small">Tier 0 always answers; that is what makes it a floor. So as a fallback it
+      offered its status report to a question it had not addressed.</p>
+      <div class="bad-line">"what was I doing in 1995" → <b>"6 open commitments, 1 past due.
+      Recently in play: …"</b></div>
+      <p class="small dim" style="margin:10px 0 0">Worse than a refusal, because it sounds like an
+      answer. Fixed: the fallback path may decline, while <code>answer()</code> still always speaks.</p>
+    </div>
+    <div class="box" style="border-color:#3d1c22">
+      <h4 style="color:var(--bad)">Layer 2: the floor matches too loosely</h4>
+      <p class="small">Its entity matcher used a bare substring test.</p>
+      <div class="bad-line">"what was I checking on lmuendeild <b>last</b>" matched the repo
+      <b>"cadenroe/<u>last</u>30days-skill"</b> and offered it as the closest thing.</div>
+      <p class="small dim" style="margin:10px 0 0">A fragment inside a longer token is a coincidence,
+      not a match. Fixed with whole-word matching. <b>A confident coincidence is the worst thing a
+      memory can produce.</b></p>
+    </div>
+    <div class="box" style="border-color:#3d1c22">
+      <h4 style="color:var(--bad)">Layer 3: I rebuilt the bug</h4>
+      <p class="small">The model says "I cannot answer that question" about half the time on one
+      question. I treated that as a failure to route around, and let the floor answer from the
+      retrieved evidence instead.</p>
+      <div class="bad-line">"what was I doing in 1995" → <b>"The closest things I have are these:
+      Google Chrome …"</b></div>
+      <p class="small dim" style="margin:10px 0 0">Layer 1's exact failure, reintroduced one layer
+      down, by me, minutes after fixing it.</p>
+    </div>
+  </div>
+
+  <div class="rule"><b>A declining model is usually right.</b> The final design does not route around
+  it. It <em>translates</em> it. Same verdict, said in Memoir's voice rather than the model's, because
+  "I cannot answer that question" is not a sentence this product says. The fallback-to-floor is
+  reserved for the genuinely different case: the model <em>did</em> answer, and stated something its
+  evidence could not support.</div>
+
+  <p class="small dim">The dead end was reverted rather than kept, including a
+  <code>matchedCaptureIDs</code> field threaded through the context packet to support it. Shipping it
+  unused would have left an API whose only justification was an approach that did not work.</p>
+  <p class="small dim" style="margin-top:12px">Related tokenizer bug found the same way: <code>16:00</code>
+  was being split into <code>16</code> and <code>00</code>, and rejected because neither half appeared in
+  the evidence. A bare <code>00</code> is not a claim anyone makes. A clock time is now one token, so it
+  is grounded when that time was on the timeline and not otherwise.</p>
+
+  <h3>Where guards are the wrong tool entirely</h3>
+  <p class="small">A grounding guard asks one question: <em>is this claim supported by the
+  evidence?</em> That is exactly the wrong question for a credential.</p>
+
+  <div class="box" style="border-color:#3d1c22;background:#120a0c">
+    <div class="bad-line">Q: "what is my password for github" →
+      A: <b>"Your password for github is \"login\"."</b></div>
+    <p class="small" style="margin:10px 0 0;color:#ff9aa4">Confident, wrong, and assembled from the
+    text around a login form. Secure fields are never read and anything resembling a secret is dropped
+    at capture, but <b>"never captured" is not the same as "never answered"</b>. And had a real
+    credential ever reached the corpus, a grounding guard would have waved it through as
+    <em>supported</em>.</p>
+  </div>
+
+  <p class="small" style="margin-top:14px">So three question classes are now refused
+  <b>deterministically, before retrieval and before any model runs</b>:</p>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="box"><h4>Credentials</h4>
+      <div class="good-line">"I won't repeat passwords, keys or codes, not even if one crossed the screen."</div>
+      <p class="small dim" style="margin:10px 0 0">Matches possessive and interrogative forms only, so
+      <em>"that article about password managers"</em> stays answerable.</p></div>
+    <div class="box"><h4>Private browsing</h4>
+      <div class="good-line">"I don't record private or incognito windows at all."</div>
+      <p class="small dim" style="margin:10px 0 0">Structural, not a lookup. The honest answer does not
+      depend on the database.</p></div>
+    <div class="box"><h4>Prediction</h4>
+      <div class="good-line">"I only have a record of what has already happened."</div>
+      <p class="small dim" style="margin:10px 0 0">The real failure was <em>"You will likely continue
+      working on your AI-native product."</em> The word "tomorrow" alone must not trigger it:
+      <em>"what's due tomorrow"</em> is a real question.</p></div>
+  </div>
+
+  <div class="rule"><b>A guarantee cannot be delegated to a classifier.</b> "Never reveal a credential"
+  is a security property. A router that is right 87% of the time is excellent routing and unacceptable
+  security. Know which of your requirements are preferences and which are promises, and implement the
+  promises where no probability is involved.</div>
+</section>
+
+<!-- ============ 07 EVALS ============ -->
+<section id="evals">
+  <div class="sechead">
+    <span class="num">07</span>
+    <div><h2>Evals</h2><p>Unit tests prove the machinery works. Evals prove the answers are good. Different question.</p></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="box">
+      <h4>Shape of a case</h4>
+      <div class="payload">{
+  "q": "what was that tweet about
+        claude skills in an sms app",
+  "expect": "Names the tweet's subject.",
+  "mustContainAny": ["claude skills",
+                     "sms app", "mirafenn"],
+  "mustNotContain": ["don't have",
+                     "no record", ...]
+}</div>
+      <p class="small" style="margin-top:12px">Three assertion kinds: <code>mustContain</code> (all),
+      <code>mustContainAny</code> (at least one), <code>mustNotContain</code> (none). The
+      <code>expect</code> field is prose for the human reading a failure: it says what a good answer
+      looks like, so you can tell "not captured yet" from "answered wrongly".</p>
+    </div>
+    <div class="box">
+      <h4>The six groups · 48 cases</h4>
+      <table style="margin:0">
+        <tr><td>recall</td><td class="small">11 · find a thing seen days ago</td></tr>
+        <tr><td>resumption</td><td class="small">8 · reload where you left off</td></tr>
+        <tr><td>accounting</td><td class="small">6 · arithmetic over sessions</td></tr>
+        <tr><td>honesty</td><td class="small">12 · must refuse; passes on <em>any</em> database</td></tr>
+        <tr><td>quality</td><td class="small">3 · reads like an answer, not a dump</td></tr>
+        <tr><td>edge</td><td class="small">8 · empty, malformed, adversarial, prompt injection</td></tr>
+      </table>
+      <p class="small dim" style="margin-top:12px">Only <b>honesty</b> and <b>edge</b> are portable.
+      The rest depend on one person's captured corpus: a real limitation, stated in the runner's own
+      help text rather than hidden.</p>
+    </div>
+  </div>
+
+  <h3>The rule that made evals trustworthy</h3>
+  <div class="grid g2">
+    <div class="box" style="border-color:#3d1c22">
+      <h4 style="color:var(--bad)">What went wrong</h4>
+      <p class="small">I reported a recall regression and a resumption regression to the user.
+      Neither was real. I had drawn a conclusion from a single noisy run.</p>
+      <div class="bad-line">The same code scored 20/23 and 21/23 on consecutive runs. One case passed
+      twice, then failed.</div>
+    </div>
+    <div class="box" style="border-color:#1c3a30">
+      <h4 style="color:var(--good)">The fix</h4>
+      <p class="small">Every case runs N times (default 3). A case passes only if it passes
+      <em>every</em> run.</p>
+      <div class="good-line">PASS = 3/3 · FLAKY = 1–2/3 · FAIL = 0/3<br>
+      <b>Flaky is not passing.</b> An answer that is right two times in three is a bug you have not
+      characterised yet.</div>
+    </div>
+  </div>
+
+  <div class="rule"><b>Generative systems are stochastic; your test harness must be statistical.</b>
+  Grading a rate rather than a coin flip is the difference between measuring and guessing. This is the
+  single change that most improved our ability to tell whether we were making progress.</div>
+</section>
+
+<!-- ============ 08 DRIFT ============ -->
+<section id="drift">
+  <div class="sechead">
+    <span class="num">08</span>
+    <div><h2>Drift and feedback loops</h2><p>The worst bug of the project, and why it took seven wrong diagnoses</p></div>
+  </div>
+
+  <p class="lead">A memory system reads its own output. That closes a loop, and closed loops in
+  AI systems fail in ways that look nothing like their cause.</p>
+
+  <h3>The self-echo death spiral</h3>
+  <p class="small">Memoir filters out captures that are its own output; otherwise, its answer appears
+  on screen, gets captured, and pollutes the next answer. Sensible. Here is what actually happened:</p>
+
+  <div class="loop" style="margin:18px 0">
+    <div class="loopnode"><b>01 · source</b>A tweet is on screen. Captured correctly.</div>
+    <div class="loopnode"><b>02 · answer</b>You ask about it. Memoir answers, correctly, by quoting the tweet.</div>
+    <div class="loopnode"><b>03 · log</b>That answer is appended to the ask log.</div>
+    <div class="loopnode" style="border-color:#3d1c22;background:#160b0e">
+      <b style="color:var(--bad)">04 · poison</b>The ask log becomes the self-echo fingerprint set.</div>
+    <div class="loopnode" style="border-color:#3d1c22;background:#160b0e">
+      <b style="color:var(--bad)">05 · erasure</b>The ORIGINAL tweet now matches a fingerprint and is
+      suppressed as "Memoir's own output".</div>
+  </div>
+
+  <div class="bad-line" style="font-size:12.5px">Answering a question once made it permanently
+  unanswerable. The memory erased whatever it successfully recalled.</div>
+
+  <div class="good-line" style="font-size:12.5px;margin-top:10px">Fix: only a capture that
+  <b>postdates</b> an answer can be an echo of it. Self-echo became time-aware, and the loop broke.</div>
+
+  <h3>The second-order echo: debugging a memory in front of the memory</h3>
+  <p class="small">The self-echo guard catches Memoir's <em>own answers</em> reappearing on screen. It
+  cannot catch a conversation <em>about</em> those answers, and those conversations quote the
+  failures verbatim. Here is the actual evidence packet Memoir built for a recall question:</p>
+
+  <div class="box" style="border-color:#3d1c22;background:#120a0c">
+    <div class="bad-line">Claude: "…lmuendeild last? <b>Answer: You were on https://lmuendeild.ai at 17:40</b>"</div>
+    <div class="bad-line">Claude: "Recall regressed: what url was the motion website → <b>https://mem0ai/mem0</b>"</div>
+    <p class="small" style="margin:12px 0 0;color:#ff9aa4">Those are <b>bug reports</b>. Memoir read them
+    and served the documented <em>wrong</em> answers back as fact.</p>
+  </div>
+
+  <p class="small" style="margin-top:14px">And every grounding guard passed, <b>correctly</b>. The
+  host guard asks "does this domain appear in the evidence?", and by then the invented domain genuinely
+  did, because we had pasted it into an assistant window while debugging. The guard was not broken.
+  The corpus was poisoned with the guard's own failure log.</p>
+
+  <div class="grid g3" style="margin-top:14px">
+    <div class="box"><h4 style="color:var(--bad)">Symptom</h4><p class="small" style="margin:0">Three
+    recall evals failing, each returning a specific, plausible, completely wrong URL or repo.</p></div>
+    <div class="box"><h4 style="color:var(--warn)">Apparent cause</h4><p class="small" style="margin:0">
+    Retrieval precision. Ranking. Typo correction echoing back. All wrong.</p></div>
+    <div class="box"><h4 style="color:var(--good)">Actual cause</h4><p class="small" style="margin:0">
+    Assistant conversations were being cited as evidence. One filter, already written for the semantic
+    index, was never applied to keyword retrieval. All three failures fixed at once.</p></div>
+  </div>
+
+  <div class="rule"><b>What you asked is not what you saw.</b> Only the latter is evidence. Titles
+  still flow to the resumption timeline: "you were in Claude at 16:49" is true and useful. It is the
+  <em>body text</em> that may never be cited as fact. If you build a system that observes, assume it
+  will observe you working on it, and decide in advance what that is worth.</div>
+
+  <h3>Why it took seven wrong diagnoses</h3>
+  <p class="small">Search was blamed. Ranking was blamed. Embeddings were blamed. Every one was a
+  plausible story told from the outside. The bug was found in one step by adding a trace to the
+  context-builder loop that printed why each capture was dropped. It printed <code>echo=true</code>.</p>
+
+  <div class="rule"><b>The lesson that cost the most.</b> In a probabilistic pipeline you cannot reason
+  your way to a root cause from the output: every stage is a plausible suspect and none of them can be
+  eliminated by argument. <b>Instrument the decision, not the result.</b> Log why each candidate was
+  <em>rejected</em>, and the bug names itself.</div>
+
+  <h3>The other drift defences</h3>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="box"><h4>Corrections are permanent</h4><p class="small">Edit an entity's title and no
+    extraction pass may ever overwrite it, not even a higher-confidence one. Tier-0 invariant. If this
+    breaks, the memory cannot be trusted, and an untrustworthy memory is worse than none.</p></div>
+    <div class="box"><h4>Consolidation is idempotent</h4><p class="small">Run extraction three times over
+    the same captures; entity count is identical after runs 2 and 3. Re-processing must never duplicate.</p></div>
+    <div class="box"><h4>Memory outlives its source</h4><p class="small">Retention rolls captures off at
+    60 days but never entities. Provenance degrades to "source expired" rather than dangling: the
+    memory survives, the raw text does not.</p></div>
+  </div>
+
+  <div class="box" style="margin-top:14px;border-color:#2a3a24">
+    <h4 style="color:var(--good)">Never index a conversation with an assistant</h4>
+    <p class="small" style="margin:0">A subtle one. Questions embed near other questions, so a semantic
+    search for "that tweet about claude skills in an sms app" returned eight prompts I had typed <em>to
+    an assistant</em> and not one piece of actual content. <b>What you asked is not what you saw, and
+    only the latter is worth remembering.</b></p>
+  </div>
+</section>
+
+<!-- ============ 09 TRADEOFFS ============ -->
+<section id="tradeoffs">
+  <div class="sechead">
+    <span class="num">09</span>
+    <div><h2>Trade-offs and hard decisions</h2><p>Every one has a cost. The cost is the honest part.</p></div>
+  </div>
+
+  <div class="box" style="padding:6px 10px;overflow-x:auto">
+  <table>
+    <thead><tr><th>Decision</th><th>Rejected</th><th>Why</th><th>What it costs</th><th></th></tr></thead>
+    <tbody>
+      <tr><td>Zero dependencies</td><td>Any package</td>
+        <td>Trust is the product. A supply chain you do not control is a promise you cannot keep.</td>
+        <td>We reimplement things. SQLite bindings, JSON-RPC, embeddings glue.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Accessibility text</td><td>Screenshots + OCR</td>
+        <td>Structured, cheap, no image data at rest. OCR would mean pixels on disk forever.</td>
+        <td>Blind to canvas and video. Electron apps needed depth 40 / 12k nodes to read at all.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Event-driven capture</td><td>Fixed 6s timer</td>
+        <td>A static screen should produce nothing. Measured: ~15 captures / 10 min vs ~300, and 73% distinct vs 12%.</td>
+        <td>Five interacting debounces (200ms floor, 1.2s typing pause, 1.5s checkpoint, 30s idle, 120s idle threshold). Every one is a bug surface.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Brute-force vectors</td><td>sqlite-vec / FAISS / HNSW</td>
+        <td>Saves ~20 ms at our corpus size while adding a dependency. Retention caps growth.</td>
+        <td>Hard ceiling at 100k vectors, after which it must be revisited. Written into the source with a warning log.</td>
+        <td><span class="pill rev">revisit</span></td></tr>
+      <tr><td>Passage embeddings</td><td>Whole-capture vectors</td>
+        <td>A long page averages its own meaning away: the correct capture scored 0.306, below unrelated pages at 0.44.</td>
+        <td>Up to 12 embeddings per capture, and a two-stage search instead of one.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Enforce grounding</td><td>Prompt for it</td>
+        <td>Prompting a 3B model not to fabricate does not work. Enforcement does.</td>
+        <td>Post-hoc parsing of every answer, and four guards each of which was defeated once by real screen text.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Escalate on margin</td><td>Escalate on failure</td>
+        <td>A fixed rule cannot know when it is wrong. A calibrated margin can.</td>
+        <td>The threshold is corpus-specific and must be re-measured, not inherited.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Local net ≠ cloud</td><td>One "allowCloud" gate</td>
+        <td>A Mac mini on your own Tailscale is the same trust boundary as your laptop. Gating it as "cloud" would be theatre.</td>
+        <td>A third trust tier to reason about, and to test.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Pass = N/N runs</td><td>Pass = one run</td>
+        <td>Single runs produced two regression reports that were not real.</td>
+        <td>3× the eval wall-clock. 48 cases × 3 runs is a slow feedback loop.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Certificate-anchored signing</td><td>Ad-hoc signing</td>
+        <td>Ad-hoc signatures change cdhash on every build, so macOS revokes Accessibility permission every deploy.</td>
+        <td>Keychain and signing setup that broke repeatedly, and a deploy script forbidden from ever "self-healing" by re-signing.</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Retention: text dies, memory lives</td><td>Keep everything</td>
+        <td>Bounds disk and bounds the vector scan. Entities are the valuable part anyway.</td>
+        <td>Provenance can point at a purged capture, so every reader must handle "source expired".</td>
+        <td><span class="pill keep">keep</span></td></tr>
+      <tr><td>Pull-only (today)</td><td>Push + pull</td>
+        <td>Shipping the harder half first: inferring intent from screen text is where all the failure modes live.</td>
+        <td>Every extraction bug in this document exists <em>only</em> because we guess. Pushed data is authored, not inferred, so it is clean by construction. That is the next phase.</td>
+        <td><span class="pill rev">next</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 10 LESSONS ============ -->
+<section id="lessons">
+  <div class="sechead">
+    <span class="num">10</span>
+    <div><h2>Lessons</h2><p>What transfers to any AI-native product</p></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="lesson"><span class="ln">01</span><b>Shrink the job, not the model</b>
+      <p>A small model asked an open question invents. The same model asked to phrase supplied evidence
+      is reliable. Most "we need a bigger model" problems are "we gave it too much latitude" problems.</p></div>
+    <div class="lesson"><span class="ln">02</span><b>Enforce, do not request</b>
+      <p>Anything you put in a prompt is a suggestion. Anything you check after generation is a
+      guarantee. If a property matters, assert it in code.</p></div>
+    <div class="lesson"><span class="ln">03</span><b>Escalate on calibrated confidence</b>
+      <p>Cheap-first cascades are easy. The value is in the confidence signal that decides when to
+      escalate. Measure its distribution against real inputs before picking a threshold.</p></div>
+    <div class="lesson"><span class="ln">04</span><b>Instrument the decision, not the result</b>
+      <p>Seven wrong diagnoses from reasoning about outputs; one right one from logging why each
+      candidate was rejected. Log your <em>filters</em>.</p></div>
+    <div class="lesson"><span class="ln">05</span><b>Flaky is failing</b>
+      <p>Run every eval N times and pass only on N/N. A single run of a stochastic system is an
+      anecdote, and anecdotes produced two regression reports that were false.</p></div>
+    <div class="lesson"><span class="ln">06</span><b>Watch for closed loops</b>
+      <p>The moment a system reads its own output, you have a feedback loop. Ours quietly erased any
+      memory it had successfully recalled. Ask of every filter: what happens on the second pass?</p></div>
+    <div class="lesson"><span class="ln">07</span><b>Guards must be written against logs</b>
+      <p>Three of four grounding guards were defeated by real screen text within a day: "100% local"
+      grounded "$100"; a Finder header grounded "you created". Your imagination is not an adversary.</p></div>
+    <div class="lesson"><span class="ln">08</span><b>Defer with an expiry condition</b>
+      <p>"No vector database" is only defensible because the ceiling is measured, written down, and
+      logged when crossed. A deferred decision without a trigger is just an unmade one.</p></div>
+    <div class="lesson"><span class="ln">09</span><b>Refusal is a feature</b>
+      <p>"I do not have that" is a correct answer, and 12 of 48 eval cases assert it. A memory that
+      invents is not a memory. Users forgive gaps; they do not forgive fiction.</p></div>
+    <div class="lesson"><span class="ln">10</span><b>Have a floor that needs no model</b>
+      <p>Tier 0 computes from SQL and cannot hallucinate. Every model can be unavailable, slow, or
+      wrong; the product still answers. Design the degraded path first.</p></div>
+    <div class="lesson"><span class="ln">11</span><b>Know your promises from your preferences</b>
+      <p>"Never reveal a credential" is a guarantee and cannot be delegated to a classifier that is
+      merely usually right. Implement promises where no probability is involved: before retrieval,
+      before any model.</p></div>
+    <div class="lesson"><span class="ln">12</span><b>Your system will observe you building it</b>
+      <p>We debugged a memory in front of the memory. It learned our bug reports and served the
+      documented wrong answers back as fact, with every guard passing correctly. If your product
+      ingests the world, it ingests your work on the product too.</p></div>
+    <div class="lesson"><span class="ln">13</span><b>Built is not wired</b>
+      <p>The semantic index was complete, tested and backfilled. And nothing called it. Retrieval
+      was keyword-only for weeks and the failure looked exactly like a ranking bug. Test that
+      components are <em>reached</em>, not only that they work.</p></div>
+    <div class="lesson"><span class="ln">14</span><b>When two rankers disagree, add a signal</b>
+      <p>Not a better weighting. Reciprocal rank fusion was correct and still lost, because both
+      rankers genuinely liked the wrong page. The fix was a third list carrying information neither
+      had: exact phrase adjacency.</p></div>
+    <div class="lesson"><span class="ln">15</span><b>A declining model is usually right</b>
+      <p>"I cannot answer that" is often correct. Routing around it is how a fallback starts
+      fabricating: we reproduced our own just-fixed bug one layer down doing exactly that.
+      Translate the refusal into your product's voice; do not overrule it.</p></div>
+    <div class="lesson"><span class="ln">16</span><b>Watch for the eagerness to answer</b>
+      <p>Three separate bugs, three layers apart, were one instinct: produce content where a
+      refusal was honest. It reappears every time you add a fallback. Ask of each one: what does
+      this say when it has nothing?</p></div>
+  </div>
+</section>
+
+<footer>Memoir · local memory · built and measured on one machine</footer>
+</main>
+
+<script>
+const TRACKS = {
+read: {
+  label: "A question",
+  steps: [
+    {n:"Input", t:"⌥Space", ms:"instant", d:"A floating panel opens over whatever you were doing. It is an NSPanel, not a window: it must never steal focus from the app you are reading, because the thing you want to ask about is usually still on screen behind it.",
+     payload:'"what was that tweet about claude skills in an sms app"',
+     chips:[["cool","non-activating panel"],["hot","state survives dismissal"]],
+     note:"A real bug: NSPanel.hidesOnDeactivate defaults to true, so clicking away silently destroyed your half-typed question."},
+    {n:"Normalise", t:"Clean + typo-fix", ms:"< 1 ms", d:"Whitespace collapsed, then each term is checked against the vocabulary the memory has actually seen. 'lmuendeild' becomes 'lumenfield'.",
+     payload:"terms: [tweet, claude, skills, sms, app]\nstopwords removed · 'sms' kept (rare, high BM25 weight)",
+     chips:[["cool","spell-check guarded"]],
+     note:"First version rewrote 'leave' to 'real' in 'where did I leave off'. Absence from your memory is not evidence of a misspelling. A system dictionary now vetoes corrections to real words."},
+    {n:"Route ①", t:"Embed + cosine", ms:"~4 ms", d:"The question is embedded and compared to five category centroids. The gap between best and second-best is the margin: the router's own estimate of how much to trust itself.",
+     payload:"recall      0.612  ←\nresumption  0.489\naccounting  0.401\nsmallTalk   0.244\noutOfScope  0.231\n\nmargin = 0.123",
+     chips:[["cool","free · no tokens"],["cool","on device"]]},
+    {n:"Margin?", t:"≥ 0.075", ms:"0 ms", d:"Confident. Stage 2 is skipped entirely. If the margin had been thin, a @Generable-constrained classifier would run (~15 s), but structurally unable to return an invalid category.",
+     payload:"0.123 ≥ 0.075 → CONFIDENT\nescalation skipped · ~15 s saved",
+     chips:[["hot","87% of questions stop here"]]},
+    {n:"Retrieve", t:"BM25 ∪ semantic", ms:"~25 ms", d:"Category decides the strategy. For recall: keyword search over a long window, unioned with semantic passage search, ranked by BM25 order, which must be preserved, not re-sorted by recency.",
+     payload:"FTS5:      tweet OR claude OR skills OR sms OR app\nsemantic:  best-passage cosine ≥ 0.35\n→ keyword hits first, semantic behind them",
+     chips:[["cool","two searches, one shortlist"],["hot","scores are not blended"]],
+     note:"A silent 'ambiguous column name: text' from the FTS join was swallowed by a try? and returned zero rows for days."},
+    {n:"Filter", t:"Two echo gates", ms:"< 1 ms", gate:true, d:"Drop Memoir's own output, and drop conversations with an assistant. The first gate once suppressed the correct answer forever. The second exists because Memoir read our own bug reports and served the documented wrong answers back as fact.",
+     payload:"isSelfEcho(capture, answers)\n  → only if capture.ts > answer.ts\nisMetaContent(capture)\n  → assistant chat is never evidence",
+     chips:[["risk","closed feedback loop"],["cool","time-aware"],["cool","meta-content excluded"]],
+     note:"Titles still reach the resumption timeline: 'you were in Claude at 16:49' is true and useful. It is the BODY TEXT that may never be cited as fact."},
+    {n:"Pack", t:"Budget context", ms:"~5 ms", d:"Sections built per category, durations precomputed rather than left for the model to calculate, and the whole packet trimmed to a token budget. Pinned and due-soon entities always survive the trim.",
+     payload:"≤ 2000 tokens\nsections: captures · entities · sessions\narithmetic already done",
+     chips:[["cool","never ask a 3B model to add up"]]},
+    {n:"Brain", t:"Select tier", ms:"~1 ms", d:"Cheapest brain that can be held accountable for this job. Cloud is never selected without explicit consent: not on fallback, not on retry, not when everything local is down.",
+     payload:"rulesOnly      available\nappleOnDevice  available  ← selected\nlocalNetwork   mini asleep\nanthropic      consent off",
+     chips:[["cool","degrade, never fail"]]},
+    {n:"Generate", t:"Phrase it", ms:"~2–8 s", d:"The model's entire job: turn the evidence into a sentence. It is not asked to recall, not asked to reason about facts it was not given, and not asked to compute.",
+     payload:'"The tweet was about Claude skills wrapped in an SMS app."',
+     chips:[["hot","phrase, don't know"]]},
+    {n:"Guards", t:"Ground the answer", ms:"< 1 ms", gate:true, d:"Numbers, hosts, actions, echo, tautology. Any unsupported claim and the whole answer is discarded. Then the question falls to Tier 0, which reads the store directly and cannot invent. Only if that has nothing too do we actually refuse.",
+     payload:"numbers  none stated        ✓\nhosts    none stated        ✓\nactions  none claimed        ✓\necho     not a restatement   ✓\n→ RELEASE",
+     chips:[["cool","enforcement, not prompting"]]},
+    {n:"Log", t:"Append to ask log", ms:"< 1 ms", d:"Question, answer, category, margin, brain, latency. This is what the evals grade and what every improvement in this document was found in.",
+     payload:"asks.jsonl ← { q, a, category, margin, brain, ms }",
+     chips:[["cool","the log IS the eval corpus"]],
+     note:"And the loop closes: this log is also the self-echo fingerprint set. Which is exactly how the worst bug got in."}
+  ]
+},
+write: {
+  label: "A screen",
+  steps: [
+    {n:"Event", t:"Something changed", ms:"n/a", d:"Capture is event-driven, never on a timer. App switch, window title change, document change, or a pause in typing. A static screen produces nothing at all.",
+     payload:"frontmost app changed → Google Chrome\nwindow title changed → 'mirafenn on X'",
+     chips:[["cool","~15 captures / 10 min"],["risk","was ~300 on a 6s timer"]]},
+    {n:"Debounce", t:"Five floors", ms:"0.2–30 s", d:"200 ms global floor, 1.2 s typing pause, 1.5 s burst checkpoint, 30 s while idle, 120 s before idle is declared. Typing produces exactly one capture on the pause, never one per keystroke.",
+     payload:"minCaptureInterval   0.20 s\ntypingPause          1.20 s\ncheckpointInterval   1.50 s\nidleCaptureInterval  30 s\nidleThreshold        120 s",
+     chips:[["risk","five interacting timers"]]},
+    {n:"Gates", t:"Should we look?", ms:"< 1 ms", gate:true, d:"Excluded bundle IDs, private browsing in any browser and any language, and secure text fields. Not truncated, not redacted: absent. Private browsing is the clearest signal a user can give.",
+     payload:"excluded bundle?      no\nprivate window?       no\nAXSecureTextField?    not descended into",
+     chips:[["cool","absent, not redacted"]],
+     note:"The browser only stops recording its own history. Nothing stops an accessibility reader, so it has to be honoured explicitly."},
+    {n:"Walk", t:"Accessibility tree", ms:"≤ 1.2 s", d:"Bounded depth-first walk of the AX tree. Electron apps hide their content 20–40 levels deep: at depth 12 Claude Desktop yielded 6 characters and Obsidian yielded 40.",
+     payload:"maxDepth       40   (was 12)\nmaxNodes       12,000 (was 2,000)\nmaxCharacters  20,000\ndeadline       1.2 s · watchdog 1.6 s",
+     chips:[["cool","Obsidian: 40 → 1,400 chars"]],
+     note:"Also asks for AXManualAccessibility, which is what makes Chromium expose its web area at all."},
+    {n:"Dedupe", t:"Hash + compare", ms:"< 1 ms", gate:true, d:"Identical text captured twice is one row. This is what kept the capture count frozen at 17 while the user swore they had been working: the trigger was firing, the dedupe was correct, and nothing was changing.",
+     payload:"sha256(text) == previous → drop",
+     chips:[["cool","73% distinct, was 12%"]]},
+    {n:"Store", t:"SQLite + FTS5", ms:"~2 ms", d:"One row, plus an FTS5 index entry. Synchronous and fast; capture must never block the UI or wait on anything downstream.",
+     payload:"INSERT captures (ts, bundle, app, title, text, hash)\nINSERT captures_fts",
+     chips:[["cool","never blocks the UI"]]},
+    {n:"Embed", t:"Off the hot path", ms:"~4 ms ea", d:"Backfilled later, never inline. Conversations with an assistant are deliberately marked as attempted and left unembedded: what you asked is not what you saw.",
+     payload:"NLEmbedding · 512-dim · Float not Double\nskip: isConversationalAI(capture)",
+     chips:[["cool","half the RAM as Float"]]},
+    {n:"Consolidate", t:"Extract entities", ms:"async", d:"People, projects, commitments, each with provenance pointing at a real capture and a snippet that genuinely appears in it. Idempotent: running it three times yields the same entity count.",
+     payload:"entity ← provenance → capture.id\nrelative dates resolved against an\ninjected reference date, never the clock",
+     chips:[["cool","every entity traceable"]],
+     note:"A user's correction to an entity title is permanent and may never be overwritten by a later, higher-confidence pass. Tier-0 invariant."},
+    {n:"Retain", t:"Roll off at 60 days", ms:"nightly", d:"Old captures are deleted and the file is vacuumed. Entities are never deleted. The memory outlives its raw source, and readers degrade to 'source expired' rather than dangling.",
+     payload:"DELETE captures WHERE ts < now − 60d\nentities: untouched\nVACUUM",
+     chips:[["cool","bounds disk and vector scan"]]}
+  ]
+}};
+
+let track = "read", i = 0, timer = null;
+const flowEl = document.getElementById("pipeline"),
+      detailEl = document.getElementById("detail"),
+      barEl = document.getElementById("bar"),
+      counterEl = document.getElementById("counter"),
+      playBtn = document.getElementById("play");
+
+function build(){
+  const steps = TRACKS[track].steps;
+  flowEl.innerHTML = "";
+  steps.forEach((s, k) => {
+    if (k) { const a = document.createElement("div"); a.className="arrow"; a.textContent="→"; flowEl.appendChild(a); }
+    const n = document.createElement("div");
+    n.className = "node" + (s.gate ? " gate" : "");
+    n.innerHTML = `<span class="n">${String(k+1).padStart(2,"0")}</span>
+      <span class="t">${s.n}</span><span class="ms">${s.ms}</span>`;
+    n.onclick = () => { stop(); i = k; render(); };
+    flowEl.appendChild(n);
+  });
+}
+
+function render(){
+  const steps = TRACKS[track].steps;
+  const nodes = [...flowEl.querySelectorAll(".node")];
+  const arrows = [...flowEl.querySelectorAll(".arrow")];
+  nodes.forEach((n,k)=>{ n.classList.toggle("on", k===i); n.classList.toggle("done", k<i); });
+  arrows.forEach((a,k)=> a.classList.toggle("lit", k<i));
+  const s = steps[i];
+  detailEl.innerHTML = `
+    <div class="step">step ${String(i+1).padStart(2,"0")} · ${s.t}</div>
+    <h4 class="dt">${s.n}</h4>
+    <p>${s.d}</p>
+    ${s.payload ? `<div class="payload">${s.payload}</div>` : ""}
+    <div class="meta">${(s.chips||[]).map(c=>`<span class="chip ${c[0]}">${c[1]}</span>`).join("")}</div>
+    ${s.note ? `<p class="small dim" style="margin-top:12px;border-left:2px solid var(--line);padding-left:12px">${s.note}</p>` : ""}`;
+  barEl.style.width = ((i+1)/steps.length*100) + "%";
+  counterEl.textContent = `${i+1} / ${steps.length}`;
+  const on = nodes[i];
+  if (on) on.scrollIntoView({behavior:"smooth", block:"nearest", inline:"center"});
+}
+
+function stop(){ if(timer){clearInterval(timer); timer=null;} playBtn.textContent="▶ Play"; }
+function play(){
+  if (timer) { stop(); return; }
+  if (i >= TRACKS[track].steps.length-1) i = -1;
+  playBtn.textContent="❚❚ Pause";
+  timer = setInterval(()=>{
+    if (i >= TRACKS[track].steps.length-1) { stop(); return; }
+    i++; render();
+  }, 3400);
+  i++; if (i >= TRACKS[track].steps.length) i = TRACKS[track].steps.length-1;
+  render();
+}
+
+playBtn.onclick = play;
+document.getElementById("next").onclick = ()=>{ stop(); i=Math.min(i+1, TRACKS[track].steps.length-1); render(); };
+document.getElementById("prev").onclick = ()=>{ stop(); i=Math.max(i-1,0); render(); };
+document.getElementById("reset").onclick = ()=>{ stop(); i=0; render(); };
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick = ()=>{
+    stop();
+    document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected","false"));
+    t.setAttribute("aria-selected","true");
+    track = t.dataset.track; i = 0; build(); render();
+  };
+});
+document.addEventListener("keydown", e=>{
+  if (e.key==="ArrowRight"){ stop(); i=Math.min(i+1,TRACKS[track].steps.length-1); render(); }
+  if (e.key==="ArrowLeft"){ stop(); i=Math.max(i-1,0); render(); }
+});
+
+build(); render();
+</script>
+</body>
+</html>

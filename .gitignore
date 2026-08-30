@@ -1,0 +1,23 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# macOS
+.DS_Store
+
+# Built app bundle
+Memoir.app/
+dist/
+
+# Never commit a real memory database or the ask log: they contain captured screen text.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+asks.jsonl
+build/

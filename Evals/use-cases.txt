@@ -1,0 +1,42 @@
+# Memoir answer evals, grouped by the three use cases the product exists to serve.
+# Run:  ./.build/debug/memoir-ask --batch Evals/use-cases.txt
+#
+# These are not pass/fail assertions: the right answer depends on your own data.
+# They are the questions to eyeball after any retrieval change, because each group
+# exercises a DIFFERENT retrieval strategy and they fail in different ways.
+
+# ── 1. RECALL: "what was that thing?" ────────────────────────────────────────
+# Needs: deep keyword search over a long window. Precision over recency.
+# Currently: strong.
+what was that repo about screen memory
+what url was the motion website
+did I look at anything about quillvox
+what was the lumenfield page I had open
+what was the name of the local dictation tool
+
+# ── 2. RESUMPTION: "where was I?" ────────────────────────────────────────────
+# Needs: time-windowing plus grouping by project. Recency-first.
+# Currently: WEAK. Answers go stale by hours; grouped questions return empty lists.
+where did I leave off
+what was I working on before lunch
+catch me up on what I was doing in chrome
+what did I look at most recently
+what was I doing an hour ago
+
+# ── 3. ACCOUNTING: "what did I actually do?" ─────────────────────────────────
+# Needs: aggregation over sessions, not retrieval. Arithmetic, not search.
+# Each shape now has its own template: asked app first, totals with bounds,
+# project grouping via the ontology, and "shipped" that names its epistemics.
+how much time did I spend in chrome today
+what did I ship today
+summarise my day
+how long have I been working
+give me my timesheet
+weekly review
+
+# ── 4. HONESTY: must refuse, not invent ──────────────────────────────────────
+# Guarded by CF-17b. Every one of these should decline.
+what do I owe anyone
+who did I talk to
+how much money did I spend today
+what is my bank balance

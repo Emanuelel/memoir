@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "THE ABLATION GATE for the returns block.",
+    "",
+    "Written BEFORE the block it judges, and that is the whole point. This project has",
+    "repeatedly shipped a number that turned out to measure the wrong thing, and the panel",
+    "that designed the returns block ran its own gate by hand and found the block changed",
+    "one answer of three — a closing offer that makes no claim. If that reproduces here, the",
+    "block does not ship. Declaring the criterion afterwards would let the criterion be",
+    "chosen to fit the result.",
+    "",
+    "Run:  Scripts/ablate.sh --db <path> --from 2026-07-31 --to 2026-08-27",
+    "",
+    "THREE ARMS, one window, same questions:",
+    "  none      coverage + days only. The control.",
+    "  full      coverage + days + the returns block at its real floor.",
+    "  placebo   coverage + days + a returns block of the SAME ROW COUNT and the same",
+    "            columns, built from subjects BELOW the floor. This arm exists because",
+    "            adding 1,700 tokens of plausible text changes an answer on its own, and a",
+    "            gate that only compares against the empty set measures that instead of",
+    "            measuring the block.",
+    "",
+    "WHAT COUNTS AS USING THE BLOCK. Mechanical, so no judge is needed and no judge can be",
+    "argued with: an answer uses the block when it names a subject key that appears in that",
+    "arm's returns table and nowhere in the coverage or days blocks. Paraphrase does not",
+    "count. If a model can answer without naming anything the block alone supplied, the",
+    "block did not contribute.",
+    "",
+    "THE CRITERION, fixed here and not to be moved:",
+    "  ships   full uses the block on at least 4 of the 8 questions,",
+    "          AND full's usage exceeds placebo's by at least 3 questions.",
+    "  cut     anything else.",
+    "",
+    "The second half is the one that matters. If placebo scores as well as full, the model",
+    "is being moved by the presence of a table, not by what is in it."
+  ],
+
+  "window": {
+    "note": "Any window may be passed on the command line. This is the one the panel measured.",
+    "from": "2026-07-31",
+    "to": "2026-08-27"
+  },
+
+  "criterion": {
+    "questions": 8,
+    "fullMinimumUses": 4,
+    "fullMustExceedPlaceboBy": 3
+  },
+
+  "questions": [
+    {
+      "id": "life-now",
+      "ask": "Where am I at right now, based on the last month?",
+      "why": "The owner's own question, verbatim in intent. The hardest one, and the one the coverage block is expected to answer by refusing."
+    },
+    {
+      "id": "job-personal",
+      "ask": "Is my job affecting my personal life?",
+      "why": "The owner's second question. Needs contrast and coverage; the panel's dry run answered it entirely from coverage."
+    },
+    {
+      "id": "where-next",
+      "ask": "Based on what you know about me, where should I go next month?",
+      "why": "The owner's third. Expected to refuse outright. Included so the gate cannot be passed by counting a refusal as a use."
+    },
+    {
+      "id": "month-shape",
+      "ask": "What did this month consist of?",
+      "why": "The plainest possible period question. If the block is ever used, it is used here."
+    },
+    {
+      "id": "recurring",
+      "ask": "What did I keep coming back to?",
+      "why": "Written to be maximally favourable to the block. If full does not beat placebo HERE, it does not beat it anywhere."
+    },
+    {
+      "id": "not-work",
+      "ask": "What was I doing that was not work?",
+      "why": "The life-versus-work question, without naming a category. No classifier may be used to answer it."
+    },
+    {
+      "id": "new-this-month",
+      "ask": "What is new this month that was not there before?",
+      "why": "Uses the first-seen column, which is the one part of the block the panel kept after deleting every last-seen field."
+    },
+    {
+      "id": "quiet",
+      "ask": "Were there stretches where I was not doing much?",
+      "why": "A trap. The honest answer is about coverage, not activity, and an arm that answers it from the returns table is answering wrongly."
+    }
+  ]
+}
