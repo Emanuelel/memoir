@@ -536,6 +536,27 @@ final class SettingsModel: ObservableObject {
         return RetentionProjection(sentence: sentence, isLarge: false)
     }
 
+    /// Whether raw captures are kept for ever. Zero is how the config spells that, and the
+    /// zero must never reach the screen: the shipping default rendered as "keep raw captures
+    /// for 0 days" next to a sentence saying everything is kept, and once anyone touched the
+    /// stepper (floor 1) there was no way back to keeping everything at all.
+    var keepsEverything: Bool { config.retentionDays == 0 }
+
+    /// Where the stepper lands when deletion is switched back on. Remembered from the last
+    /// window the user had, so flipping the toggle twice does not eat the number they chose;
+    /// 90 only for someone who never had one.
+    private var lastRetentionWindow = 90
+
+    func setKeepsEverything(_ keep: Bool) {
+        if keep {
+            if config.retentionDays > 0 { lastRetentionWindow = config.retentionDays }
+            config.retentionDays = 0
+        } else {
+            config.retentionDays = lastRetentionWindow
+        }
+        apply()
+    }
+
     func purgeOld() async {
         // Never a no-op that silently wipes: zero means keep everything, and the sweep in
         // MemoryService guards on it too.
@@ -1646,16 +1667,29 @@ private struct DataTab: View {
 
 
             Section {
-                Stepper("Keep raw captures for \(model.config.retentionDays) days",
-                        value: $model.config.retentionDays, in: 1...365)
+                Toggle("Keep everything", isOn: Binding(
+                    get: { model.keepsEverything },
+                    set: { model.setKeepsEverything($0) }
+                ))
+                if !model.keepsEverything {
+                    Stepper(
+                        "Keep raw captures for \(model.config.retentionDays) "
+                            + (model.config.retentionDays == 1 ? "day" : "days"),
+                        value: $model.config.retentionDays, in: 1...365
+                    )
                     .onChange(of: model.config.retentionDays) { _, _ in model.apply() }
+                }
                 if let projection = model.retentionProjection {
                     Text(projection.sentence)
                         .font(.caption)
                         .foregroundStyle(projection.isLarge ? .orange : .secondary)
                 }
-                Button("Purge captures older than that now") {
-                    Task { await model.purgeOld() }
+                if !model.keepsEverything {
+                    // At keep-everything this button is a guarded no-op, and a button that
+                    // does nothing is worse than no button.
+                    Button("Purge captures older than that now") {
+                        Task { await model.purgeOld() }
+                    }
                 }
                 Button("Delete everything", role: .destructive) { confirmWipe = true }
                 if let problem = model.purgeStatus {
@@ -1664,11 +1698,13 @@ private struct DataTab: View {
             } header: {
                 Text("Retention")
             } footer: {
-                Text("""
-                    Raw captures roll off. Short quoted snippets kept as evidence for what \
-                    Memoir learned do not, and neither does what it has learned: those stay \
-                    until you delete them.
-                    """)
+                Text(model.keepsEverything
+                     ? "Nothing rolls off at this setting. Every capture stays until you delete it."
+                     : """
+                       Raw captures roll off. Short quoted snippets kept as evidence for what \
+                       Memoir learned do not, and neither does what it has learned: those stay \
+                       until you delete them.
+                       """)
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

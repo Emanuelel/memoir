@@ -133,3 +133,68 @@ struct UpdateCheckTests {
         OutboundMonitor.shared.resetForTesting()
     }
 }
+
+// MARK: - Resting the on-device model after a refusal
+
+@Suite(.serialized)
+struct OnDeviceRefusalTests {
+
+    /// The whole diagnosis, in one error shape. `modelmanagerd` finds every asset, resolves
+    /// the session, then refuses under `CriticalMemoryPressure` and reports 1013 with no
+    /// message attached. Nothing but the domain chain identifies it.
+    @Test("a refusal from the model service is recognised in a nested error chain")
+    func recognisesTheRefusal() {
+        AppleOnDeviceBrain.clearRefusal()
+        let root = NSError(domain: "ModelManagerServices.ModelManagerError", code: 1013)
+        let mid = NSError(domain: "com.apple.SensitiveContentAnalysisML", code: 15,
+                          userInfo: [NSUnderlyingErrorKey: root])
+        let outer = NSError(domain: "FoundationModels.LanguageModelSession.GenerationError",
+                            code: -1, userInfo: [NSMultipleUnderlyingErrorsKey: [mid]])
+
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        AppleOnDeviceBrain.noteFailure(outer, now: now)
+        #expect(AppleOnDeviceBrain.isResting(now: now.addingTimeInterval(60)))
+        AppleOnDeviceBrain.clearRefusal()
+    }
+
+    /// Relaxed guardrails drop the sensitive-content frame and keep 1013, which is how the
+    /// classifier was ruled out as the cause. Both shapes have to be recognised.
+    @Test("the same refusal is recognised without the sensitive-content frame")
+    func recognisesItUnderPermissiveGuardrails() {
+        AppleOnDeviceBrain.clearRefusal()
+        let root = NSError(domain: "ModelManagerServices.ModelManagerError", code: 1013)
+        let outer = NSError(domain: "FoundationModels.LanguageModelSession.GenerationError",
+                            code: -1, userInfo: [NSUnderlyingErrorKey: root])
+
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        AppleOnDeviceBrain.noteFailure(outer, now: now)
+        #expect(AppleOnDeviceBrain.isResting(now: now))
+        AppleOnDeviceBrain.clearRefusal()
+    }
+
+    /// The failure is memory pressure, so it passes. Resting has to end on its own, or one
+    /// busy afternoon would cost the brain until the app was relaunched.
+    @Test("the rest ends by itself")
+    func restingExpires() {
+        AppleOnDeviceBrain.clearRefusal()
+        let root = NSError(domain: "ModelManagerServices.ModelManagerError", code: 1013)
+        let now = Date(timeIntervalSince1970: 3_000_000)
+        AppleOnDeviceBrain.noteFailure(root, now: now)
+
+        #expect(AppleOnDeviceBrain.isResting(now: now.addingTimeInterval(AppleOnDeviceBrain.backoff - 1)))
+        #expect(!AppleOnDeviceBrain.isResting(now: now.addingTimeInterval(AppleOnDeviceBrain.backoff + 1)))
+        AppleOnDeviceBrain.clearRefusal()
+    }
+
+    /// A timeout means the model was reached and was slow. That is a different thing, and must
+    /// not rest a brain that would answer the next question.
+    @Test("an ordinary failure does not rest the brain")
+    func ordinaryFailureIsNotARefusal() {
+        AppleOnDeviceBrain.clearRefusal()
+        let timeout = NSError(domain: "FoundationModels.LanguageModelSession.GenerationError",
+                              code: -1, userInfo: [:])
+        let now = Date(timeIntervalSince1970: 4_000_000)
+        AppleOnDeviceBrain.noteFailure(timeout, now: now)
+        #expect(!AppleOnDeviceBrain.isResting(now: now))
+    }
+}

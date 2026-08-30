@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 #if canImport(FoundationModels)
 import FoundationModels
@@ -46,17 +47,85 @@ public struct AppleOnDeviceBrain: Brain {
 
     // MARK: - Availability
 
+    /// When the on-device model was last refused, and why.
+    ///
+    /// Three wrong diagnoses were written before this one, so the evidence is worth keeping.
+    /// `SystemLanguageModel.availability` says `.available`, and every request fails instantly:
+    ///
+    ///     GenerationError -1
+    ///       └ GenerationError -1
+    ///           └ com.apple.SensitiveContentAnalysisML 15
+    ///               └ ModelManagerServices.ModelManagerError 1013
+    ///
+    /// The sensitive-content frame is a red herring: `.permissiveContentTransformations` drops
+    /// it and leaves 1013 untouched. So is the idea that the model is missing. `modelmanagerd`
+    /// finds all four assets, locks them, resolves the session, and only then says no:
+    ///
+    ///     ModelCatalog  Found asset bundle com.apple.fm.language.instruct_3b.fm_api_generic
+    ///     RequestManager  Request denied due to policy CriticalMemoryPressure (background)
+    ///     Model XPC Request  Not executed due to current system state, try again later
+    ///
+    /// macOS will not page in a 3B model on a machine already swapping. That is what 1013 means
+    /// here, and the API says none of it: the error arrives with no reason and no message, and
+    /// only the system log carries `CriticalMemoryPressure`.
+    ///
+    /// Which makes this weather, not climate. The brain is fine and the Mac is full, so the
+    /// answer is to stop asking for a few minutes rather than to give up: a refusal caused by
+    /// memory pressure would otherwise disable a perfectly good model until relaunch. Backing
+    /// off still buys back the three seconds per question that were being spent on a request
+    /// that could not be served.
+    private static let refusal = OSAllocatedUnfairLock<Date?>(initialState: nil)
+
+    /// How long to leave it alone after a refusal. Long enough that a busy Mac gets a chance to
+    /// breathe, short enough that closing a few windows makes Memoir clever again quite soon.
+    static let backoff: TimeInterval = 5 * 60
+
+    /// Records a refusal from the model service, which means the request never reached the
+    /// model. A timeout or a cancelled request is an ordinary failure and is not recorded.
+    static func noteFailure(_ error: Error, now: Date = Date()) {
+        let chain = rootDomains(of: error as NSError)
+        guard chain.contains(where: { $0.contains("ModelManager") }) else { return }
+        refusal.withLock { $0 = now }
+        Log.shared.warn("on-device model refused the request, resting it for \(Int(backoff / 60)) minutes")
+    }
+
+    /// Forgets any refusal. For tests, and for the moment a generation succeeds.
+    static func clearRefusal() { refusal.withLock { $0 = nil } }
+
+    /// Whether the brain is resting after a refusal.
+    static func isResting(now: Date = Date()) -> Bool {
+        guard let last = refusal.withLock({ $0 }) else { return false }
+        return now.timeIntervalSince(last) < backoff
+    }
+
+    /// Every error domain in a nested chain, which is where the real cause hides.
+    static func rootDomains(of error: NSError, depth: Int = 0) -> [String] {
+        guard depth < 8 else { return [] }
+        var out = [error.domain]
+        if let under = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+            out += rootDomains(of: under, depth: depth + 1)
+        }
+        if let many = error.userInfo[NSMultipleUnderlyingErrorsKey] as? [Error] {
+            for e in many { out += rootDomains(of: e as NSError, depth: depth + 1) }
+        }
+        return out
+    }
+
     /// Whether the system model can answer right now.
     ///
     /// Returns `false` (never throws) when the OS is older than macOS 26, when the framework is
-    /// absent from the SDK, when the device is not eligible, when Apple Intelligence is off, or
-    /// when the model is still downloading.
+    /// absent from the SDK, when the device is not eligible, when Apple Intelligence is off,
+    /// when the model is still downloading, or when the model service refused a request in the
+    /// last few minutes.
     public func isAvailable() async -> Bool {
         // `MEMOIR_NO_MODEL` means no model anywhere, not "no model except the one you asked
         // for". Reporting unavailable here sends `BrainRouter` down the fallback chain it
         // already has, and the last link (`RulesOnlyBrain`) is deterministic by construction,
         // which is the whole reason a gate wants this.
         guard !ModelGate.modelsDisabled else { return false }
+        // Then the softer one. The gate is a standing instruction and outranks a refusal that
+        // will have expired in five minutes.
+        if Self.isResting() { return false }
         switch Self.status() {
         case .available: return true
         case .unavailable: return false
@@ -65,6 +134,13 @@ public struct AppleOnDeviceBrain: Brain {
 
     /// A sentence the settings UI can show verbatim explaining the current state.
     public func availabilityDetail() async -> String {
+        if Self.isResting() {
+            return """
+            Apple's on-device model turned the last request down. That normally means this Mac \
+            is short on memory, because macOS will not load the model while it is swapping. \
+            Memoir will try it again in a few minutes.
+            """
+        }
         switch Self.status() {
         case .available:
             return "Apple's on-device model is ready. Nothing leaves this Mac."
@@ -274,6 +350,8 @@ public struct AppleOnDeviceBrain: Brain {
                 }
                 switch outcome {
                 case .success(let content):
+                    // Proof the Mac has room again, which outranks any earlier refusal.
+                    Self.clearRefusal()
                     return content
                 case .failure(let error):
                     // Leave `work` running; it is harmless and will finish on its own.
@@ -281,6 +359,9 @@ public struct AppleOnDeviceBrain: Brain {
                     throw error
                 }
             } catch {
+                // Records a refusal so the router rests the brain instead of paying three
+                // seconds a question to be turned down again.
+                Self.noteFailure(error)
                 let detail = Self.describe(error)
                 Log.shared.warn("On-device generation failed: \(detail)")
                 throw MemoirError.brainUnavailable(.appleOnDevice, detail)
